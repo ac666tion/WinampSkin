@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.ac666tion.xenamp">
+    package="com.shajikhan.winampskin">
 
     <!-- Internet is used only for user-requested streams and downloading skins. -->
     <uses-permission android:name="android.permission.INTERNET" />
