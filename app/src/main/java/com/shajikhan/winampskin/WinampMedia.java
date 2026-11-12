@@ -546,12 +546,14 @@ public class WinampMedia {
             }
         });
 
-        getPlaylistMenuLoad = new PopupMenu(context, l);
-        getPlaylistMenuLoad.inflate(R.menu.playlist_load);
+        // The visible LOAD button opens the audio file browser directly.
+        // The old popup contained placeholder actions without handlers, making
+        // the button appear to do nothing.
+        l.setContentDescription("Load audio files");
         l.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getPlaylistMenuLoad.show();
+                openAudioPicker();
             }
         });
 
