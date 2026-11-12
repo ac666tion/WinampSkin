@@ -115,7 +115,7 @@ public class PanelWorkspace extends FrameLayout {
         // Old saved positions may have been created by the previous snapping
         // implementation, which allowed intersections. Discard only positions
         // that collide, restoring those panels to their safe default locations.
-        restoreNonOverlappingDefaults();
+        restoreSafeDefaults();
     }
 
     private void configurePanel(View panel, String key, String orientationKey,
@@ -155,26 +155,16 @@ public class PanelWorkspace extends FrameLayout {
         return null;
     }
 
-    private void restoreNonOverlappingDefaults() {
-        for (int i = 0; i < entries.size(); i++) {
-            PanelEntry entry = entries.get(i);
-            if (!hasOverlapWithEarlierEntries(entry, i)) continue;
+    private void restoreSafeDefaults() {
+        for (PanelEntry entry : entries) {
+            if (isPositionSafe(entry.panel, entry.panel.getX(), entry.panel.getY())) {
+                continue;
+            }
             entry.panel.setX(clamp(entry.defaultX, 0,
                     Math.max(0, getWidth() - panelWidth(entry.panel))));
             entry.panel.setY(clamp(entry.defaultY, 0,
                     Math.max(0, getHeight() - panelHeight(entry.panel))));
         }
-    }
-
-    private boolean hasOverlapWithEarlierEntries(PanelEntry entry, int entryIndex) {
-        for (int i = 0; i < entryIndex; i++) {
-            if (intersects(entry.panel.getX(), entry.panel.getY(),
-                    panelWidth(entry.panel), panelHeight(entry.panel),
-                    entries.get(i).panel)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -232,7 +222,7 @@ public class PanelWorkspace extends FrameLayout {
         if (best[2] < Float.MAX_VALUE) {
             panel.setX(best[0]);
             panel.setY(best[1]);
-        } else if (!isPositionFree(panel, currentX, currentY)) {
+        } else if (!isPositionSafe(panel, currentX, currentY)) {
             // Never persist a layout in which two windows overlap.
             panel.setX(clamp(startX, 0, Math.max(0, getWidth() - movingWidth)));
             panel.setY(clamp(startY, 0, Math.max(0, getHeight() - movingHeight)));
@@ -256,7 +246,7 @@ public class PanelWorkspace extends FrameLayout {
         if (candidateX < 0 || candidateY < 0
                 || candidateX + width > getWidth()
                 || candidateY + height > getHeight()) return;
-        if (!isPositionFree(moving, candidateX, candidateY)) return;
+        if (!isPositionSafe(moving, candidateX, candidateY)) return;
 
         float distanceSquared = dx * dx + dy * dy;
         if (distanceSquared < best[2]) {
@@ -266,23 +256,33 @@ public class PanelWorkspace extends FrameLayout {
         }
     }
 
-    private boolean isPositionFree(View moving, float x, float y) {
+    /**
+     * A final position is safe only when the two panels have at least the
+     * configured 5 mm separation on one full axis. This prevents both overlap
+     * and almost-touching corners/edges after a drag.
+     */
+    private boolean isPositionSafe(View moving, float x, float y) {
         int width = panelWidth(moving);
         int height = panelHeight(moving);
+        int gap = snapDistancePx;
         for (PanelEntry entry : entries) {
-            if (entry.panel == moving) continue;
-            if (intersects(x, y, width, height, entry.panel)) return false;
+            View other = entry.panel;
+            if (other == moving) continue;
+
+            float otherX = other.getX();
+            float otherY = other.getY();
+            int otherWidth = panelWidth(other);
+            int otherHeight = panelHeight(other);
+
+            boolean separatedLeftRight = x + width + gap <= otherX
+                    || otherX + otherWidth + gap <= x;
+            boolean separatedTopBottom = y + height + gap <= otherY
+                    || otherY + otherHeight + gap <= y;
+            if (!separatedLeftRight && !separatedTopBottom) {
+                return false;
+            }
         }
         return true;
-    }
-
-    private boolean intersects(float x, float y, int width, int height, View other) {
-        float otherX = other.getX();
-        float otherY = other.getY();
-        int otherWidth = panelWidth(other);
-        int otherHeight = panelHeight(other);
-        return x < otherX + otherWidth && x + width > otherX
-                && y < otherY + otherHeight && y + height > otherY;
     }
 
     private int panelWidth(View panel) {
