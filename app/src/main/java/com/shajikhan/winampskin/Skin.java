@@ -198,11 +198,12 @@ public class Skin {
         protected Void doInBackground(String... urls) {
             InputStream input = null;
             File file = new File(context.getFilesDir(), "downloadedSkin.zip");
+            if (file.exists()) file.delete();
 
             try {
                 Log.d(TAG, "downloadSkin: Opening file");
                 input = new URL(urls[0]).openStream();
-            } catch (FileNotFoundException | MalformedURLException | IOException e) {
+            } catch (IOException e) {
                 Log.e(TAG, "Unable to download skin: " + urls[0], e);
                 return null;
             }
