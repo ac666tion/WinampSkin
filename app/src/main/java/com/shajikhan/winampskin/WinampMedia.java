@@ -44,8 +44,6 @@ import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
-import com.google.android.exoplayer2.upstream.BandwidthMeter;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
@@ -117,7 +115,6 @@ public class WinampMedia {
         setupPlaylistMenu();
         setupEqualizer();
 //        play (shaji [shaji.length -1][0], shaji [shaji.length -1][1]);
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
 //        AdaptiveTrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
 //        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
         playerNotificationManager = PlayerNotificationManager.createWithNotificationChannel(mainActivity.context, "Xenamp", R.string.app_name, notificationId, mediaDescriptionAdapter, new PlayerNotificationManager.NotificationListener() {
@@ -678,9 +675,6 @@ public class WinampMedia {
                     case R.id.add_url:
                         addUrl();
                         break;
-                    case R.id.add_featured:
-                        winampSkin.jsonDialog("https://xenamp-android.web.app/featured.json");
-                        break ;
                 }
                 return false;
             }
