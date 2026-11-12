@@ -2,6 +2,7 @@ package com.shajikhan.winampskin;
 
 import android.content.ClipData;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -45,6 +46,20 @@ public class MainActivity extends AppCompatActivity {
         Intent launchIntent = getIntent();
         if (launchIntent != null && Intent.ACTION_VIEW.equals(launchIntent.getAction())) {
             addSelectedUri(launchIntent.getData());
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Keep the ExoPlayer instance alive while the device rotates. Refresh
+        // only the skin views and their geometry; do not recreate the player.
+        if (winampSkin != null) {
+            winampSkin.refreshForConfiguration();
+        }
+        if (winampMedia != null) {
+            winampMedia.setupEqualizer();
         }
     }
 
