@@ -887,7 +887,7 @@ public class WinampSkin {
                     canvas.drawBitmap(left, 0, i * convertDpToPixel(20 * UPSCALE_FACTOR), paint);
 //                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + canvasHeight);
 //                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)canvasHeight ))
-                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(212))
+                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(38f * UPSCALE_FACTOR))
                         break ;
                 }
 
@@ -899,7 +899,7 @@ public class WinampSkin {
 //                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + canvasHeight);
                     canvas.drawBitmap(right, canvasWidth - convertDpToPixel(20 * UPSCALE_FACTOR), i *convertDpToPixel(20 * UPSCALE_FACTOR), paint);
 //                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)canvasHeight ))
-                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(212))
+                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(38f * UPSCALE_FACTOR))
                         break ;
                 }
 
@@ -916,7 +916,7 @@ public class WinampSkin {
                     canvas.drawBitmap(
                             upscaleBitmap(loadSkinBitmap(179.5f, 0.5f, 24, 37.5f, skin, "pledit")),
                             convertDpToPixel(i + 124f),
-                            canvasHeight - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+                            canvasHeight - convertDpToPixel(38f * UPSCALE_FACTOR),
                             paint
                     );
                 }
@@ -926,7 +926,7 @@ public class WinampSkin {
                         upscaleBitmap(loadSkinBitmap(0, 72.5f, 124.5f, 37.5f, skin, "pledit")),
                         0,
 //                        canvasHeight - (convertDpToPixel(232) + convertDpToPixel(38 * UPSCALE_FACTOR)),
-                        canvasHeight - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+                        canvasHeight - convertDpToPixel(38f * UPSCALE_FACTOR),
                         paint
                 );
 //                Log.d(TAG, "draw : %d x %d".format ("%d %d", canvasHeight, convertDpToPixel(40 * displayMetrics.scaledDensity))) ;
@@ -935,7 +935,7 @@ public class WinampSkin {
                 canvas.drawBitmap(
                         upscaleBitmap(loadSkinBitmap(126.5f, 72.5f, 149.5f, 37.5f, skin, "pledit")),
                         canvasWidth - convertDpToPixel(149.5f * UPSCALE_FACTOR),
-                        canvasHeight - convertDpToPixel(212) - convertDpToPixel(38f * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+                        canvasHeight - convertDpToPixel(38f * UPSCALE_FACTOR),
                         paint
                 );
 
