@@ -4,6 +4,8 @@
 
     <!-- Internet is used only for user-requested streams and downloading skins. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 4.1–4.3 only: required by legacy file managers that return file:// URIs. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="18" />
 
     <application
         android:allowBackup="false"
