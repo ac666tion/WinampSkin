@@ -217,29 +217,14 @@ public class WinampSkin {
     public void setup () {
         mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         density = displayMetrics.scaledDensity;
-        int height = displayMetrics.heightPixels;
-        int width = displayMetrics.widthPixels;
-
         Log.d(TAG, displayMetrics.toString());
-        LinearLayout window = mainActivity.findViewById(R.id.window);
-
         mainWindow = mainActivity.findViewById(R.id.main_window);
-        // Scale the 275x116 Winamp artwork to the available width, but do not
-        // enlarge it beyond the artwork's configured 1.43x scale. On tablets in
-        // landscape this keeps the main window and equalizer from consuming the
-        // entire vertical space and hiding the playlist.
-        float panelHeightDp = Math.min(
-                width / displayMetrics.scaledDensity * 116f / 275f,
-                116f * UPSCALE_FACTOR);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
-//        Log.d(TAG, "setup: " + width / displayMetrics.scaledDensity  * 116f/275f);
-        mainWindow.setLayoutParams(layoutParams);
 
         setupMainWindow(skin, false, false);
         setupEqualizer();
         setupPlaylist();
         setupPlaylistManagement();
+        arrangeWorkspace();
     }
 
     /**
@@ -250,18 +235,26 @@ public class WinampSkin {
         mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         density = displayMetrics.scaledDensity;
 
-        int width = displayMetrics.widthPixels;
-        float panelHeightDp = Math.min(
-                width / displayMetrics.scaledDensity * 116f / 275f,
-                116f * UPSCALE_FACTOR);
         mainWindow = mainActivity.findViewById(R.id.main_window);
-        LinearLayout.LayoutParams mainParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
-        mainWindow.setLayoutParams(mainParams);
-
         setupMainWindow(skin, shuffleState, repeatState);
         setupEqualizer();
         setupPlaylist();
+        arrangeWorkspace();
+    }
+
+    /**
+     * Gives the player and equalizer their natural Winamp skin dimensions,
+     * then lets PanelWorkspace place the three independent panels.
+     */
+    private void arrangeWorkspace() {
+        PanelWorkspace workspace = mainActivity.findViewById(R.id.window);
+        LinearLayout main = mainActivity.findViewById(R.id.main_window);
+        LinearLayout equalizer = mainActivity.findViewById(R.id.equalizer);
+        LinearLayout playlist = mainActivity.findViewById(R.id.playlist);
+        int panelWidth = Math.min(displayMetrics.widthPixels,
+                convertDpToPixel(275f * UPSCALE_FACTOR));
+        int panelHeight = Math.round(panelWidth * 116f / 275f);
+        workspace.arrangePanels(main, equalizer, playlist, panelWidth, panelHeight);
     }
 
     public void setupMainWindow (Skin skin, boolean shuffleActive, boolean repeatActive) {
@@ -628,12 +621,6 @@ public class WinampSkin {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public void setupEqualizer () {
         LinearLayout equalizer = mainActivity.findViewById(R.id.equalizer);
-        float panelHeightDp = Math.min(
-                displayMetrics.widthPixels / displayMetrics.scaledDensity * 116f / 275f,
-                116f * UPSCALE_FACTOR);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
-
         Bitmap mBitmap = BitmapFactory.decodeResource(mainActivity.getResources(), R.drawable.eqmain),
                 mBitmap1 = Bitmap.createBitmap(mBitmap, 0, 0, convertDpToPixel(275), convertDpToPixel(116));
 //        equalizer.setBackground(new BitmapDrawable(mainActivity.getResources(), mBitmap1));
@@ -714,7 +701,6 @@ public class WinampSkin {
 
         equalizer.setBackground(drawable);
         // Always update dimensions: the same view survives orientation changes.
-        equalizer.setLayoutParams(layoutParams);
         if (on == null) {
             on = new WinampButton(
                     context,
@@ -837,20 +823,12 @@ public class WinampSkin {
         LinearLayout linearLayout = mainActivity.findViewById(R.id.playlist);
         DisplayMetrics displayMetrics = new DisplayMetrics();
         mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        int height = displayMetrics.heightPixels;
-        int width = displayMetrics.widthPixels;
-
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel((height / displayMetrics.scaledDensity) - (116+116)));
-        //TODO: The following works but is unnecessary. But since I've already written it and it works perfectly,
-        //      I've kept it in.
-//        if (on ==null)
-//            linearLayout.setLayoutParams(layoutParams);
-
         Drawable drawable = new Drawable() {
             @Override
             public void draw(@NonNull Canvas canvas) {
-                this.setBounds(0, 0, width, convertDpToPixel((height / displayMetrics.scaledDensity) - (116+116)));
-                int canvasHeight = convertDpToPixel((height / displayMetrics.scaledDensity) - (116+116)) ;
+                final int canvasWidth = canvas.getWidth();
+                final int canvasHeight = canvas.getHeight();
+                this.setBounds(0, 0, canvasWidth, canvasHeight);
                 Paint paint = new Paint();
                 Bitmap topLeft = loadSkinBitmap(0,0,24,20, skin, "pledit");
 
@@ -898,7 +876,7 @@ public class WinampSkin {
                 canvas.drawBitmap(
                         upscaleBitmap(loadSkinBitmap(153.5f, 0, 24f, 20, skin, "pledit")),
 //                        convertDpToPixel(24 * 15f),
-                        displayMetrics.widthPixels - convertDpToPixel(24 * UPSCALE_FACTOR),
+                        canvasWidth - convertDpToPixel(24 * UPSCALE_FACTOR),
                         0,
                         paint
                 );
@@ -907,21 +885,21 @@ public class WinampSkin {
                 canvas.drawBitmap(left, 0, convertDpToPixel(20.5f), paint);
                 for (int i = 2 ; i < 30 ; i ++) {
                     canvas.drawBitmap(left, 0, i * convertDpToPixel(20 * UPSCALE_FACTOR), paint);
-//                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + displayMetrics.heightPixels);
-//                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)displayMetrics.heightPixels ))
-                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > displayMetrics.heightPixels - convertDpToPixel(212))
+//                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + canvasHeight);
+//                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)canvasHeight ))
+                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(212))
                         break ;
                 }
 
                 Bitmap right = upscaleBitmap(loadSkinBitmap(31f,42.5f,20f,29, skin, "pledit"));
-//                canvas.drawBitmap(right, displayMetrics.widthPixels - convertDpToPixel(21f), convertDpToPixel(20.5f), paint);
-                canvas.drawBitmap(right, displayMetrics.widthPixels - convertDpToPixel(20 * UPSCALE_FACTOR), convertDpToPixel(20 * UPSCALE_FACTOR), paint);
+//                canvas.drawBitmap(right, canvasWidth - convertDpToPixel(21f), convertDpToPixel(20.5f), paint);
+                canvas.drawBitmap(right, canvasWidth - convertDpToPixel(20 * UPSCALE_FACTOR), convertDpToPixel(20 * UPSCALE_FACTOR), paint);
                 for (int i = 2 ; i < 30 ; i ++) {
-//                    canvas.drawBitmap(right, displayMetrics.widthPixels - convertDpToPixel(21f), i * convertDpToPixel(20), paint);
-//                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + displayMetrics.heightPixels);
-                    canvas.drawBitmap(right, displayMetrics.widthPixels - convertDpToPixel(20 * UPSCALE_FACTOR), i *convertDpToPixel(20 * UPSCALE_FACTOR), paint);
-//                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)displayMetrics.heightPixels ))
-                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > displayMetrics.heightPixels - convertDpToPixel(212))
+//                    canvas.drawBitmap(right, canvasWidth - convertDpToPixel(21f), i * convertDpToPixel(20), paint);
+//                    Log.d(TAG, "draw: " + i * convertDpToPixel(20) + ", " + convertDpToPixel(272) +", " + canvasHeight);
+                    canvas.drawBitmap(right, canvasWidth - convertDpToPixel(20 * UPSCALE_FACTOR), i *convertDpToPixel(20 * UPSCALE_FACTOR), paint);
+//                    if ((i * convertDpToPixel(20) + convertDpToPixel(350)) > ((float)canvasHeight ))
+                    if (i * convertDpToPixel(29 * UPSCALE_FACTOR) > canvasHeight - convertDpToPixel(212))
                         break ;
                 }
 
@@ -938,7 +916,7 @@ public class WinampSkin {
                     canvas.drawBitmap(
                             upscaleBitmap(loadSkinBitmap(179.5f, 0.5f, 24, 37.5f, skin, "pledit")),
                             convertDpToPixel(i + 124f),
-                            displayMetrics.heightPixels - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+                            canvasHeight - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
                             paint
                     );
                 }
@@ -947,8 +925,8 @@ public class WinampSkin {
                 canvas.drawBitmap(
                         upscaleBitmap(loadSkinBitmap(0, 72.5f, 124.5f, 37.5f, skin, "pledit")),
                         0,
-//                        displayMetrics.heightPixels - (convertDpToPixel(232) + convertDpToPixel(38 * UPSCALE_FACTOR)),
-                        displayMetrics.heightPixels - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+//                        canvasHeight - (convertDpToPixel(232) + convertDpToPixel(38 * UPSCALE_FACTOR)),
+                        canvasHeight - convertDpToPixel(212)  - convertDpToPixel(38 * displayMetrics.scaledDensity * UPSCALE_FACTOR),
                         paint
                 );
 //                Log.d(TAG, "draw : %d x %d".format ("%d %d", canvasHeight, convertDpToPixel(40 * displayMetrics.scaledDensity))) ;
@@ -956,8 +934,8 @@ public class WinampSkin {
                 //bottom right
                 canvas.drawBitmap(
                         upscaleBitmap(loadSkinBitmap(126.5f, 72.5f, 149.5f, 37.5f, skin, "pledit")),
-                        displayMetrics.widthPixels - convertDpToPixel(149.5f * UPSCALE_FACTOR),
-                        displayMetrics.heightPixels - convertDpToPixel(212) - convertDpToPixel(38f * displayMetrics.scaledDensity * UPSCALE_FACTOR),
+                        canvasWidth - convertDpToPixel(149.5f * UPSCALE_FACTOR),
+                        canvasHeight - convertDpToPixel(212) - convertDpToPixel(38f * displayMetrics.scaledDensity * UPSCALE_FACTOR),
                         paint
                 );
 
