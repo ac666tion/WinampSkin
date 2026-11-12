@@ -14,7 +14,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.audiofx.AudioEffect;
-import android.media.audiofx.DynamicsProcessing;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -108,22 +107,7 @@ public class WinampMedia {
     int OPEN_FILE = 1,
         OPEN_FOLDER = 2 ;
 
-    String shaji [][] = {
-            // yay!
-            {"Winamp Intro", "https://cdn.rawgit.com/captbaritone/webamp/43434d82/mp3/llama-2.91.mp3"},
-            {"Stay Away from the Naughty Boys", "https://music.shaji.in/media/ACE%20Riff%20Project%20(With%20Rohan)/Stay%20Away%20From%20The%20Naughty%20Boys.mp3"},
-            {"Savera", "https://music.shaji.in/media/No%20Destination%20(Preview)/savera.mp3"},
-            {"Naukri", "https://music.shaji.in/media/No%20Destination%20(Preview)/naukri.mp3"},
-            {"Jannat Ke Raaste", "https://music.shaji.in/media/No%20Destination%20(Preview)/JannatkeRaaste.mp3"},
-            {"Jung", "https://music.shaji.in/media/Give%20Time%20Its%20Time%20(2011)/Jung.mp3"},
-            {"Rehnuma", "https://music.shaji.in/media/Give%20Time%20Its%20Time%20(2011)/Rehnuma.mp3"},
-            {"Sound of Freedom", "https://music.shaji.in/media/ACE%20Riff%20Project%20(With%20Rohan)/The%20Sound%20of%20Freedom.mp3"},
-            {"Aashian", "https://music.shaji.in/media/Abstractions%20Inconclusive%20(2009)/Aashian.mp3"},
-            {"Tere Bin", "https://music.shaji.in/media/Best%20of%20Solitude%20Saints/TereBin.mp3"},
-            {"We three", "https://music.shaji.in/media/Best%20of%20Solitude%20Saints/WeThree.mp3"},
-    };
 
-    @RequiresApi(api = Build.VERSION_CODES.P)
     WinampMedia (Context _context, MainActivity _mainActivity) {
         context = _context ;
         mainActivity = _mainActivity ;
@@ -154,7 +138,6 @@ public class WinampMedia {
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.P)
     void setupPlayer () {
         if (exoPlayer == null) {
             exoPlayer = new SimpleExoPlayer.Builder(context).build();
@@ -342,11 +325,7 @@ public class WinampMedia {
 
         // if there is no saved playilst, graciously give the user somethign to listen to
         JSONObject savedPlaylist = winampSkin.loadPlaylist(null);
-        if (savedPlaylist == null) {
-            for (String[] track : shaji) {
-                winampSkin.playlistAdd(Uri.parse(track[1]).getLastPathSegment(), track[1]);
-            }
-        } else {
+        if (savedPlaylist != null) {
             JSONArray keys = savedPlaylist.names();
             for (int i = 0 ; i < keys.length() ; i ++) {
                 try {
@@ -409,9 +388,10 @@ public class WinampMedia {
     }
 
     public void destroy () {
-        exoPlayer.release();
-        winampEqualizer.destroy();
-        playerNotificationManager.setPlayer(null);
+        if (handler != null) handler.removeCallbacks(updateProgressAction);
+        if (playerNotificationManager != null) playerNotificationManager.setPlayer(null);
+        if (exoPlayer != null) exoPlayer.release();
+        if (winampEqualizer != null) winampEqualizer.destroy();
     }
 
     private void updateProgressBar() {
@@ -470,48 +450,52 @@ public class WinampMedia {
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.P)
     public void setupEqualizer () {
-        int [] bars  = {
-                R.id.equalizer_60,
-                R.id.equalizer_170,
-                R.id.equalizer_310,
-                R.id.equalizer_600,
-                R.id.equalizer_1000,
-                R.id.equalizer_3000,
-                R.id.equalizer_6000,
-                R.id.equalizer_12000,
-                R.id.equalizer_14000,
+        int[] bars = {
+                R.id.equalizer_60, R.id.equalizer_170, R.id.equalizer_310,
+                R.id.equalizer_600, R.id.equalizer_1000, R.id.equalizer_3000,
+                R.id.equalizer_6000, R.id.equalizer_12000, R.id.equalizer_14000,
                 R.id.equalizer_16000
         };
 
-        for (int i = 0 ; i < 10 ; i ++) {
-            SeekBar seekBar = mainActivity.findViewById(bars [i]) ;
-            int finalI = i;
-            seekBar.setProgress((int) ((winampEqualizer.eq.getBand(i).getGain() * (10 / 3)) + 50));
-            int finalI1 = i;
+        for (int i = 0; i < bars.length; i++) {
+            SeekBar seekBar = mainActivity.findViewById(bars[i]);
+            if (seekBar == null) continue;
+            final int bandIndex = i;
+            seekBar.setMax(100);
+            seekBar.setProgress(winampEqualizer == null ? 50 :
+                    winampEqualizer.getSliderProgress(i));
             seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @RequiresApi(api = Build.VERSION_CODES.P)
                 @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    DynamicsProcessing.EqBand eq = winampEqualizer.dynamicsProcessing.getConfig().getChannelByChannelIndex(0).getPreEq().getBand(finalI);
-//                    eq.setGain((progress - 50) * 3 / 10);
-                    Log.d(TAG, String.format("onProgressChanged: setting eq %d -> %d", finalI1, (progress - 50) * 3 / 10));
-//                    Log.d(TAG, String.format("onProgressChanged: %s", winampEqualizer.eq.toString()));
-//                    winampEqualizer.dynamicsProcessing.setEnabled(false);
-//                    winampEqualizer.dynamicsProcessing.setEnabled(true);
+                public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    if (fromUser && winampEqualizer != null) {
+                        winampEqualizer.setSliderProgress(bandIndex, progress);
+                    }
                 }
 
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-
-                }
+                @Override public void onStartTrackingTouch(SeekBar bar) { }
+                @Override public void onStopTrackingTouch(SeekBar bar) { }
             });
+        }
+    }
+
+    private void openAudioPicker() {
+        Intent intent = new Intent(Build.VERSION.SDK_INT >= 19
+                ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_GET_CONTENT);
+        intent.setType("audio/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        if (Build.VERSION.SDK_INT >= 18) {
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+        mainActivity.startActivityForResult(intent, OPEN_FILE);
+    }
+
+    private void openFolderPicker() {
+        if (Build.VERSION.SDK_INT >= 21) {
+            mainActivity.startActivityForResult(
+                    new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), OPEN_FOLDER);
+        } else {
+            winampSkin.alert("Folder selection requires Android 5.0 or newer. Use Open File instead.");
         }
     }
 
@@ -626,16 +610,11 @@ public class WinampMedia {
                         winampSkin.setDefaultSkin();
                         break ;
                     case R.id.menu_open_folder:
-                        mainActivity.startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), OPEN_FOLDER);
-                        break ;
+                        openFolderPicker();
+                        break;
                     case R.id.menu_open_file:
-                        intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                        intent.setType("audio/*");
-                        intent.addCategory(Intent.CATEGORY_OPENABLE);
-                        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                        mainActivity.startActivityForResult(intent, OPEN_FILE);
-
-                        break ;
+                        openAudioPicker();
+                        break;
                 }
                 return false;
             }
@@ -689,20 +668,12 @@ public class WinampMedia {
                     default:
                         break ;
                     case R.id.add_local_folder:
-                        intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-//                        intent.setType("*/*");
-//                        intent.addCategory(Intent.CATEGORY_OPENABLE);
-//                        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
-                        mainActivity.startActivityForResult(intent, OPEN_FOLDER);
-                        break ;
+                        openFolderPicker();
+                        break;
 
                     case R.id.add_local_file:
-                        intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                        intent.setType("audio/*");
-                        intent.addCategory(Intent.CATEGORY_OPENABLE);
-                        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                        mainActivity.startActivityForResult(intent, OPEN_FILE);
-                        break ;
+                        openAudioPicker();
+                        break;
 
                     case R.id.add_url:
                         addUrl();
