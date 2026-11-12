@@ -97,7 +97,6 @@ public class WinampSkin {
 
     Button btnHit;
     TextView txtJson;
-    ProgressDialog pd;
 
     SharedPreferences sharedPreferences ;
 
