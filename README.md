@@ -10,7 +10,7 @@ The original project is licensed under GPL-2.0. This fork keeps the original Win
 - Minimum Android version: **Android 4.1 (API 16)**.
 - Remove Firebase Analytics and Crashlytics.
 - Do not include advertising SDKs or analytics SDKs.
-- Declare only the INTERNET permission. Audio files are opened through the Android file picker, using the URI permission granted by the picker.
+- Keep permissions limited to media/network use: INTERNET, ACCESS_NETWORK_STATE (used by the streaming engine), and READ_EXTERNAL_STORAGE only up to API 18 for legacy Android 4.1–4.3 file managers. There is no storage-write permission. On Android 4.4+, selected audio is accessed through the Android file picker and its granted URI permission.
 - Use Android's legacy Equalizer audio effect rather than API-28 DynamicsProcessing.
 - Use Java's built-in ZIP support for Winamp skin archives.
 - Do not load a remote featured-music feed or include demo tracks.
