@@ -208,31 +208,26 @@ public class Skin {
                 return null;
             }
 
+            OutputStream output = null;
             try {
                 Log.d(TAG, "downloadSkin: Downloading skin: " + urls[0]);
-                try (OutputStream output = new FileOutputStream(file)) {
-                    byte[] buffer = new byte[4 * 1024]; // or other buffer size
-                    int read;
-
-                    while ((read = input.read(buffer)) != -1) {
-                        output.write(buffer, 0, read);
-                    }
-
-                    output.flush();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                output = new FileOutputStream(file);
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
                 }
+                output.flush();
+            } catch (IOException e) {
+                Log.e(TAG, "Unable to save downloaded skin", e);
+                if (file.exists()) file.delete();
             } finally {
                 try {
-                    input.close();
-                    Log.d(TAG, "doInBackground: Download complete!");
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
+                    if (output != null) output.close();
+                } catch (IOException ignored) { }
+                try {
+                    if (input != null) input.close();
+                } catch (IOException ignored) { }
             }
 
             return null;
