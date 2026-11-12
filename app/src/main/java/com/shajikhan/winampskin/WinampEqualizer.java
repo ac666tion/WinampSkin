@@ -1,63 +1,89 @@
 package com.shajikhan.winampskin;
 
-import android.media.audiofx.DynamicsProcessing;
-import android.os.Build;
+import android.media.audiofx.Equalizer;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-
+/**
+ * Android-legacy-compatible 10-slider adapter backed by the platform Equalizer.
+ * Older Android devices commonly expose fewer than ten physical bands; each
+ * Winamp slider is mapped to the nearest available hardware/effect band.
+ */
 public class WinampEqualizer {
-    DynamicsProcessing dynamicsProcessing = null;
-    DynamicsProcessing.Eq eq;
-    String TAG = "WinampEqualizer";
+    private static final String TAG = "WinampEqualizer";
+    private static final int[] TARGET_FREQUENCIES = {
+            60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000
+    };
 
-    int [] bands = {
-            60,
-            170,
-            310,
-            600,
-            1000,
-            3000,
-            6000,
-            12000,
-            14000,
-            16000
-    } ;
+    private final Equalizer equalizer;
+    private final short[] sliderBands = new short[TARGET_FREQUENCIES.length];
+    private final short[] levelRange;
 
-    @RequiresApi(api = Build.VERSION_CODES.P)
-    WinampEqualizer (int sessionId) {
-        if (dynamicsProcessing == null) {
-            DynamicsProcessing.Config.Builder builder =
-                    new DynamicsProcessing.Config.Builder(
-                            DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
-                            1,       // number of channels
-                            true, 10, // preEq: use, number of bands  -> Pre Equalizer
-                            true, 1, // mbc: use, number of bands    -> Multi-Band Compressor
-                            true, 10, // postEq: use, number of bands -> Post Equalizer
-                            true     // Limiter: use
-                    );
-            builder.setPreferredFrameDuration(10); //ms
-            DynamicsProcessing.Config config = builder.build();
-
-            eq = config.getPreEqByChannelIndex(0);
-            for (int i = 0; i < 10; i++) {
-                DynamicsProcessing.EqBand postEqBand = eq.getBand(i);
-                postEqBand.setGain(0);
-                postEqBand.setCutoffFrequency(bands [i]);
+    WinampEqualizer(int audioSessionId) {
+        Equalizer candidate = null;
+        short[] range = new short[]{-1500, 1500};
+        try {
+            candidate = new Equalizer(0, audioSessionId);
+            range = candidate.getBandLevelRange();
+            mapSliders(candidate);
+            candidate.setEnabled(true);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "System equalizer is unavailable; sliders will be inactive", e);
+            if (candidate != null) {
+                try { candidate.release(); } catch (RuntimeException ignored) { }
             }
-
-            dynamicsProcessing = new DynamicsProcessing(0, sessionId, config);
-//            eq = dynamicsProcessing.getConfig().getPreEqByChannelIndex(0);
+            candidate = null;
         }
-
-        dynamicsProcessing.setEnabled(true);
-        eq.setEnabled(true);
+        equalizer = candidate;
+        levelRange = range;
     }
 
-    void configureEqualizer () {
+    private void mapSliders(Equalizer eq) {
+        short count = eq.getNumberOfBands();
+        for (int i = 0; i < TARGET_FREQUENCIES.length; i++) {
+            short best = 0;
+            long bestDistance = Long.MAX_VALUE;
+            for (short band = 0; band < count; band++) {
+                long centerHz = eq.getCenterFreq(band) / 1000L;
+                long distance = Math.abs(centerHz - TARGET_FREQUENCIES[i]);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = band;
+                }
+            }
+            sliderBands[i] = best;
+        }
     }
 
-    public void destroy () {
-        dynamicsProcessing.release();
+    public int getSliderProgress(int sliderIndex) {
+        if (equalizer == null) return 50;
+        try {
+            short value = equalizer.getBandLevel(sliderBands[sliderIndex]);
+            int min = levelRange[0];
+            int max = levelRange[1];
+            if (max <= min) return 50;
+            return Math.max(0, Math.min(100, (value - min) * 100 / (max - min)));
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Unable to read equalizer band", e);
+            return 50;
+        }
+    }
+
+    public void setSliderProgress(int sliderIndex, int progress) {
+        if (equalizer == null) return;
+        try {
+            int bounded = Math.max(0, Math.min(100, progress));
+            int min = levelRange[0];
+            int max = levelRange[1];
+            short value = (short) (min + ((max - min) * bounded / 100));
+            equalizer.setBandLevel(sliderBands[sliderIndex], value);
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Unable to change equalizer band", e);
+        }
+    }
+
+    public void destroy() {
+        if (equalizer != null) {
+            try { equalizer.release(); } catch (RuntimeException ignored) { }
+        }
     }
 }
