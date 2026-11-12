@@ -5,8 +5,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
 
-import com.wwdablu.soumya.wzip.WZip;
-import com.wwdablu.soumya.wzip.WZipCallback;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,6 +14,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.HashMap;
 
 public class Skin {
@@ -139,6 +139,48 @@ public class Skin {
 
     }
 
+    private void unzipSkinArchive(File archive, File destination) throws IOException {
+        if (!destination.exists() && !destination.mkdirs()) {
+            throw new IOException("Cannot create skin directory");
+        }
+        String root = destination.getCanonicalPath() + File.separator;
+        byte[] buffer = new byte[8192];
+        ZipInputStream zip = new ZipInputStream(new java.io.FileInputStream(archive));
+        try {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                File output = new File(destination, entry.getName());
+                String canonical = output.getCanonicalPath();
+                if (!canonical.startsWith(root)) {
+                    throw new IOException("Unsafe path in skin archive");
+                }
+                if (entry.isDirectory()) {
+                    if (!output.exists() && !output.mkdirs()) {
+                        throw new IOException("Cannot create skin subdirectory");
+                    }
+                } else {
+                    File parent = output.getParentFile();
+                    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                        throw new IOException("Cannot create skin subdirectory");
+                    }
+                    FileOutputStream stream = new FileOutputStream(output);
+                    try {
+                        int count;
+                        while ((count = zip.read(buffer)) != -1) {
+                            stream.write(buffer, 0, count);
+                        }
+                        stream.flush();
+                    } finally {
+                        stream.close();
+                    }
+                }
+                zip.closeEntry();
+            }
+        } finally {
+            zip.close();
+        }
+    }
+
     void unzipCallback () {
         Log.d(TAG, "unzipCallback: Complete!");
     }
@@ -201,47 +243,18 @@ public class Skin {
         }
 
         protected void onPostExecute(Void params) {
-            // TODO: check this.exception
-            // TODO: do something with the feed
             File file = new File(context.getFilesDir(), "downloadedSkin.zip");
-            WZip wZip = new WZip();
-
-            if (file == null) {
-                Log.e(TAG, "doInBackground: FILE is null");
+            try {
+                if (!file.exists()) throw new IOException("Downloaded skin archive is missing");
+                unzipSkinArchive(file, new File(defaultSkinDir));
+                renameSkinFiles(defaultSkinDir);
+                winampSkin.applySkin(spinnerBox);
+            } catch (IOException e) {
+                Log.e(TAG, "Unable to install skin archive", e);
+                if (winampSkin != null) {
+                    winampSkin.alert("Unable to install skin: " + e.getMessage());
+                }
             }
-            if (! file.exists())
-                Log.e(TAG, "onPostExecute: file does not exist! " +  file.toString() );
-            Log.d(TAG, "downloadSkin: Starting unzip of " + file.toString() + " to " + defaultSkinDir);
-            WZipCallback wZipCallback = new WZipCallback() {
-                @Override
-                public void onStarted(String identifier) {
-                    Log.d(TAG, "onStarted: Unzip started");
-                }
-
-                @Override
-                public void onZipCompleted(File zipFile, String identifier) {
-                    Log.d(TAG, "onZipCompleted: unzip complete");
-                    renameSkinFiles(defaultSkinDir);
-                }
-
-                @Override
-                public void onUnzipCompleted(String identifier) {
-                    Log.d(TAG, "onUnzipCompleted: unzip complete");
-                    renameSkinFiles(defaultSkinDir);
-                    winampSkin.applySkin(spinnerBox);
-                }
-
-                @Override
-                public void onError(Throwable throwable, String identifier) {
-                    Log.e(TAG, "onError: " + identifier + "\n" + throwable.toString() );
-
-                }
-            };
-            wZip.unzip(file,
-                    new File(defaultSkinDir),
-                    "backupUnzipper",
-                    wZipCallback);
-
         }
 
     }
