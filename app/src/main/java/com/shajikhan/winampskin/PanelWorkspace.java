@@ -86,6 +86,10 @@ public class PanelWorkspace extends FrameLayout {
         int panelHeight = Math.min(requestedHeight, maxPanelHeight);
         int panelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
                 Math.round(panelHeight * 275f / 116f));
+        // Keep the original 275:116 Winamp artwork ratio after width is
+        // constrained by the tablet. Otherwise portrait panels could become
+        // unusually tall and leave too little space for the playlist.
+        panelHeight = Math.round(panelWidth * 116f / 275f);
 
         int remainingWidth = workspaceWidth - panelWidth - gap;
         boolean sideBySide = landscape && remainingWidth >= dp(180);
