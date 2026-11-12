@@ -38,6 +38,8 @@ public class PanelWorkspace extends FrameLayout {
     private final int touchSlop;
     private int snapDistancePx;
     private boolean configured;
+    private int requestedPanelWidth;
+    private int requestedPanelHeight;
     private View mainPanel;
     private View equalizerPanel;
     private View playlistPanel;
@@ -56,12 +58,27 @@ public class PanelWorkspace extends FrameLayout {
         mainPanel = main;
         equalizerPanel = equalizer;
         playlistPanel = playlist;
+        requestedPanelWidth = panelWidthPx;
+        requestedPanelHeight = panelHeightPx;
         post(new Runnable() {
             @Override
             public void run() {
                 applyLayout(panelWidthPx, panelHeightPx);
             }
         });
+    }
+
+    @Override
+    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight);
+        if (requestedPanelWidth > 0 && requestedPanelHeight > 0) {
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    applyLayout(requestedPanelWidth, requestedPanelHeight);
+                }
+            });
+        }
     }
 
     private void applyLayout(int requestedPanelWidth, int requestedPanelHeight) {
@@ -144,9 +161,12 @@ public class PanelWorkspace extends FrameLayout {
     }
 
     private void positionHandle(PanelEntry entry) {
-        if (entry.handle.getParent() != this || entry.panel.getWidth() <= 0) return;
+        if (entry.handle.getParent() != this) return;
+        int panelWidth = entry.panel.getLayoutParams() == null
+                ? entry.panel.getWidth() : entry.panel.getLayoutParams().width;
+        if (panelWidth <= 0) panelWidth = entry.panel.getWidth();
         entry.handle.setX(entry.panel.getX()
-                + Math.max(0, (entry.panel.getWidth() - entry.handle.getWidth()) / 2f));
+                + Math.max(0, (panelWidth - dp(46)) / 2f));
         entry.handle.setY(entry.panel.getY() + dp(1));
         entry.handle.bringToFront();
     }
