@@ -80,19 +80,33 @@ public class PanelWorkspace extends FrameLayout {
 
         // Leave room for the playlist in portrait, while keeping the two
         // Winamp-sized panels at their natural aspect ratio.
-        int minimumPlaylistHeight = landscape ? 0 : dp(90);
-        int maxPanelHeight = Math.max(dp(64),
-                (workspaceHeight - 2 * gap - minimumPlaylistHeight) / 2);
-        int panelHeight = Math.min(requestedHeight, maxPanelHeight);
-        int panelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
-                Math.round(panelHeight * 275f / 116f));
-        // Keep the original 275:116 Winamp artwork ratio after width is
-        // constrained by the tablet. Otherwise portrait panels could become
-        // unusually tall and leave too little space for the playlist.
-        panelHeight = Math.round(panelWidth * 116f / 275f);
+        // In landscape, first try the classic two-column arrangement: the
+        // main player and equalizer stack on the left, playlist on the right.
+        int sidePanelMaxHeight = Math.max(dp(64), (workspaceHeight - gap) / 2);
+        int sidePanelHeight = Math.min(requestedHeight, sidePanelMaxHeight);
+        int sidePanelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
+                Math.round(sidePanelHeight * 275f / 116f));
+        sidePanelHeight = Math.round(sidePanelWidth * 116f / 275f);
+        boolean sideBySide = landscape
+                && workspaceWidth - sidePanelWidth - gap >= dp(180);
+
+        int panelWidth;
+        int panelHeight;
+        if (sideBySide) {
+            panelWidth = sidePanelWidth;
+            panelHeight = sidePanelHeight;
+        } else {
+            // In a single-column layout keep at least 90 dp for the playlist,
+            // even when a landscape screen is relatively short.
+            int maxPanelHeight = Math.max(dp(64),
+                    (workspaceHeight - 2 * gap - dp(90)) / 2);
+            panelHeight = Math.min(requestedHeight, maxPanelHeight);
+            panelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
+                    Math.round(panelHeight * 275f / 116f));
+            panelHeight = Math.round(panelWidth * 116f / 275f);
+        }
 
         int remainingWidth = workspaceWidth - panelWidth - gap;
-        boolean sideBySide = landscape && remainingWidth >= dp(180);
         String orientationKey = landscape ? "landscape_" : "portrait_";
 
         int mainDefaultX = sideBySide ? 0 : Math.max(0, (workspaceWidth - panelWidth) / 2);
@@ -156,14 +170,24 @@ public class PanelWorkspace extends FrameLayout {
     }
 
     private void restoreSafeDefaults() {
+        boolean invalidLayout = false;
         for (PanelEntry entry : entries) {
-            if (isPositionSafe(entry.panel, entry.panel.getX(), entry.panel.getY())) {
-                continue;
+            if (!isPositionSafe(entry.panel, entry.panel.getX(), entry.panel.getY())) {
+                invalidLayout = true;
+                break;
             }
-            entry.panel.setX(clamp(entry.defaultX, 0,
-                    Math.max(0, getWidth() - panelWidth(entry.panel))));
-            entry.panel.setY(clamp(entry.defaultY, 0,
-                    Math.max(0, getHeight() - panelHeight(entry.panel))));
+        }
+
+        // Avoid a partial reset that could create a new collision with a
+        // panel already checked earlier in the loop. The known default
+        // arrangement is valid for both orientations, so restore it as a set.
+        if (invalidLayout) {
+            for (PanelEntry entry : entries) {
+                entry.panel.setX(clamp(entry.defaultX, 0,
+                        Math.max(0, getWidth() - panelWidth(entry.panel))));
+                entry.panel.setY(clamp(entry.defaultY, 0,
+                        Math.max(0, getHeight() - panelHeight(entry.panel))));
+            }
         }
     }
 
