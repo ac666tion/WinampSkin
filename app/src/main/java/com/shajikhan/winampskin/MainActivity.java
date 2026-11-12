@@ -59,18 +59,20 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode != RESULT_OK || data == null || winampMedia == null) return;
 
         if (requestCode == OPEN_FILE) {
-            persistReadPermissionIfAvailable(data);
             ClipData clipData = data.getClipData();
             if (clipData != null && clipData.getItemCount() > 0) {
                 for (int i = 0; i < clipData.getItemCount(); i++) {
-                    addSelectedUri(clipData.getItemAt(i).getUri());
+                    Uri selected = clipData.getItemAt(i).getUri();
+                    persistReadPermissionIfAvailable(data, selected);
+                    addSelectedUri(selected);
                 }
             } else {
+                persistReadPermissionIfAvailable(data, data.getData());
                 addSelectedUri(data.getData());
             }
         } else if (requestCode == OPEN_FOLDER && Build.VERSION.SDK_INT >= 21) {
-            persistReadPermissionIfAvailable(data);
             Uri treeUri = data.getData();
+            persistReadPermissionIfAvailable(data, treeUri);
             if (treeUri != null) {
                 DocumentFile folder = DocumentFile.fromTreeUri(this, treeUri);
                 if (folder != null) loadFolder(folder);
@@ -78,15 +80,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void persistReadPermissionIfAvailable(Intent data) {
-        if (Build.VERSION.SDK_INT < 19 || data.getData() == null) return;
+    private void persistReadPermissionIfAvailable(Intent data, Uri uri) {
+        if (Build.VERSION.SDK_INT < 19 || uri == null) return;
         int flags = data.getFlags();
         int takeFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION
                 | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         if ((takeFlags & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0) {
             try {
                 getContentResolver().takePersistableUriPermission(
-                        data.getData(), takeFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        uri, takeFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } catch (SecurityException e) {
                 Log.w(TAG, "Provider did not grant persistable access", e);
             }
