@@ -9,6 +9,7 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -489,7 +490,22 @@ public class WinampMedia {
         if (Build.VERSION.SDK_INT >= 18) {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         }
-        mainActivity.startActivityForResult(intent, OPEN_FILE);
+
+        try {
+            if (Build.VERSION.SDK_INT >= 19) {
+                // Android's document picker is the most reliable source of
+                // persistent URI access on KitKat and newer.
+                mainActivity.startActivityForResult(intent, OPEN_FILE);
+            } else {
+                // Android 4.1–4.3: show the installed file/audio providers as
+                // a chooser, since these releases do not have ACTION_OPEN_DOCUMENT.
+                mainActivity.startActivityForResult(
+                        Intent.createChooser(intent, "Select audio files"), OPEN_FILE);
+            }
+        } catch (ActivityNotFoundException e) {
+            winampSkin.alert("No file browser is available to select audio files.");
+            Log.e(TAG, "No audio file picker activity is installed", e);
+        }
     }
 
     private void openFolderPicker() {
