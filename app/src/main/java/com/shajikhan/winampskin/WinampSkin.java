@@ -45,7 +45,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import com.google.android.exoplayer2.C;
 import com.shajikhan.winampskin.databinding.ActivityMainBinding;
