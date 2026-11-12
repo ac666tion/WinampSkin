@@ -358,12 +358,15 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:id="@+id/playlist_misc"/>
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"/>
                 <Button
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:layout_marginLeft="144dp"
                     android:background="@android:color/transparent"
-                    android:layout_marginRight="0dp"
+                    android:contentDescription="Load audio files"
                     android:id="@+id/playlist_load"/>
 
             </LinearLayout>
