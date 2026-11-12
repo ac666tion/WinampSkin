@@ -2,23 +2,24 @@ package com.shajikhan.winampskin;
 
 import android.content.Context;
 import android.os.Handler;
+import android.util.AttributeSet;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.LinearLayout;
 
-import android.util.AttributeSet;
-
 /**
- * A normal LinearLayout which becomes movable after a long press anywhere
- * inside its bounds. Child buttons and sliders continue to receive ordinary
- * taps and drags; the parent takes over only after the long-press timeout.
+ * A normal LinearLayout that can be moved by long-pressing anywhere on it.
+ * Ordinary button taps and SeekBar movements are passed to the child views.
+ * The panel takes over the gesture only after a stationary long press.
  */
 public class DraggablePanel extends LinearLayout {
     private static final long LONG_PRESS_TIMEOUT_MS = 500L;
 
     private final Handler handler = new Handler();
     private final int touchSlop;
+
     private float downRawX;
     private float downRawY;
     private float startX;
@@ -31,7 +32,6 @@ public class DraggablePanel extends LinearLayout {
         @Override
         public void run() {
             longPressReady = true;
-            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
         }
     };
 
@@ -60,7 +60,7 @@ public class DraggablePanel extends LinearLayout {
                 if (dragging) return true;
                 if (longPressReady) {
                     dragging = true;
-                    moved = true;
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                     setAlpha(0.92f);
                     bringToFront();
                     return true;
@@ -74,11 +74,9 @@ public class DraggablePanel extends LinearLayout {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                // A long press without a following movement is just a hold,
+                // not a drag. Leave the child's normal click/tap behaviour intact.
                 handler.removeCallbacks(armDrag);
-                if (longPressReady) {
-                    dragging = true;
-                    return true;
-                }
                 longPressReady = false;
                 return false;
 
@@ -90,18 +88,13 @@ public class DraggablePanel extends LinearLayout {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                // Used when the user presses an empty part of the panel.
-                return true;
-
             case MotionEvent.ACTION_MOVE:
                 if (dragging) {
                     float dx = event.getRawX() - downRawX;
                     float dy = event.getRawY() - downRawY;
-                    float maxX = Math.max(0, getParent() == null
-                            ? getX() : ((android.view.View) getParent()).getWidth() - getWidth());
-                    float maxY = Math.max(0, getParent() == null
-                            ? getY() : ((android.view.View) getParent()).getHeight() - getHeight());
+                    View parent = (View) getParent();
+                    float maxX = Math.max(0, parent.getWidth() - getWidth());
+                    float maxY = Math.max(0, parent.getHeight() - getHeight());
                     setX(Math.max(0, Math.min(maxX, startX + dx)));
                     setY(Math.max(0, Math.min(maxY, startY + dy)));
                     moved = true;
@@ -123,13 +116,12 @@ public class DraggablePanel extends LinearLayout {
     }
 
     /**
-     * A SeekBar may ask its parent not to intercept a drag. We intentionally
-     * ignore that request: quick movements still cancel the long press, while
-     * a held press on any part of a panel can always enter panel-move mode.
+     * Do not let a child SeekBar permanently disable interception. Quick drags
+     * cancel the pending long-press; a held press can still move its whole panel.
      */
     @Override
     public void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-        // Keep the delayed long-press gesture available over child controls.
+        // Intentionally ignored: long-press panel dragging remains available.
     }
 
     private void finishGesture() {
