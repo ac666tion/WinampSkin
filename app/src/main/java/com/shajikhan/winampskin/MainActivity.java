@@ -1,6 +1,7 @@
 package com.shajikhan.winampskin;
 
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -24,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int OPEN_FILE = 1;
     private static final int OPEN_FOLDER = 2;
 
+    public Context context;
     ActivityMainBinding binding;
     WinampSkin winampSkin;
     WinampMedia winampMedia;
@@ -31,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        context = getApplicationContext();
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
