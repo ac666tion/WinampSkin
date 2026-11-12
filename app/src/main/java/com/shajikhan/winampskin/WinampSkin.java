@@ -26,10 +26,10 @@ import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.Gravity;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.AdapterView;
@@ -196,8 +196,7 @@ public class WinampSkin {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-    WinampSkin (Context context_, MainActivity mainActivity_) {
+        WinampSkin (Context context_, MainActivity mainActivity_) {
         mainActivity = mainActivity_ ;
         self = this;
         context = context_ ;
@@ -1404,11 +1403,11 @@ public class WinampSkin {
 
                 title.setText(o.getString("title"));
                 title.setEms(30);
-                title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                title.setGravity(Gravity.CENTER);
                 title.setAllCaps(true);
                 title.setPadding(10,10,10,10);
                 info.setText(o.getString("info"));
-                info.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                info.setGravity(Gravity.CENTER);
 //                info.setTextScaleX(1.5f);
 //                description.setText(o.getString("description"));
                 action.setText(o.getString("action"));
@@ -1527,12 +1526,6 @@ public class WinampSkin {
             public void onLoadResource(WebView view, String url) {
                 super.onLoadResource(view, url);
                 Log.d(TAG, "onLoadResource: " + url);
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Log.d(TAG, "shouldOverrideUrlLoading: " + request.toString());
-                return super.shouldOverrideUrlLoading(view, request);
             }
 
             @Override
