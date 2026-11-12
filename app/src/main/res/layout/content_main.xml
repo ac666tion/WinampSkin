@@ -14,7 +14,7 @@
         tools:layout_editor_absoluteX="1dp"
         tools:layout_editor_absoluteY="1dp">
 
-        <LinearLayout
+        <com.shajikhan.winampskin.DraggablePanel
             android:layout_width="match_parent"
             android:layout_height="168dp"
             android:background="@drawable/main"
@@ -164,9 +164,9 @@
                     android:layout_height="35dp"/>
 
             </LinearLayout>
-        </LinearLayout>
+        </com.shajikhan.winampskin.DraggablePanel>
 
-        <LinearLayout
+        <com.shajikhan.winampskin.DraggablePanel
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/equalizer"
@@ -319,9 +319,9 @@
                     android:id="@+id/equalizer_16000"
                     android:layout_height="15dp"/>
             </LinearLayout>
-        </LinearLayout>
+        </com.shajikhan.winampskin.DraggablePanel>
 
-        <LinearLayout
+        <com.shajikhan.winampskin.DraggablePanel
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/playlist"
@@ -367,7 +367,7 @@
                     android:id="@+id/playlist_load"/>
 
             </LinearLayout>
-        </LinearLayout>
+        </com.shajikhan.winampskin.DraggablePanel>
     </com.shajikhan.winampskin.PanelWorkspace>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
