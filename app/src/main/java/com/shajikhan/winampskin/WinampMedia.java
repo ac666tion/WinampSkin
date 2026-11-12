@@ -31,7 +31,9 @@ import android.widget.PopupMenu;
 import android.widget.SeekBar;
 
 
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
@@ -136,6 +138,15 @@ public class WinampMedia {
     void setupPlayer () {
         if (exoPlayer == null) {
             exoPlayer = new SimpleExoPlayer.Builder(context).build();
+
+            // Let ExoPlayer request, lose and regain audio focus using the
+            // platform's media-playback rules. This is supported on API 16+.
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.CONTENT_TYPE_MUSIC)
+                    .build();
+            exoPlayer.setAudioAttributes(audioAttributes, true);
+
             winampEqualizer = new WinampEqualizer(exoPlayer.getAudioComponent().getAudioSessionId());
         }
 
