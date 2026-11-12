@@ -1,242 +1,171 @@
 package com.shajikhan.winampskin;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
-import android.content.Context;
-import android.content.DialogInterface;
+import android.content.ClipData;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.PixelFormat;
-import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.documentfile.provider.DocumentFile;
 
 import com.google.android.exoplayer2.MediaItem;
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
-
-import androidx.appcompat.widget.AppCompatButton;
-import androidx.appcompat.widget.AppCompatSeekBar;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.Guideline;
-import androidx.core.app.ActivityCompat;
-import androidx.documentfile.provider.DocumentFile;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
 import com.shajikhan.winampskin.databinding.ActivityMainBinding;
 
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ListView;
-import android.widget.SeekBar;
-import android.widget.Space;
-;import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
-    String TAG = "Main Activity";
-    // HJ Story
-    private AppBarConfiguration appBarConfiguration;
-    private ActivityMainBinding binding;
+    private static final String TAG = "MainActivity";
+    private static final int OPEN_FILE = 1;
+    private static final int OPEN_FOLDER = 2;
+
+    ActivityMainBinding binding;
     WinampSkin winampSkin;
-    Context context ;
-    WinampMedia winampMedia ;
-    LayoutInflater inflater ;
+    WinampMedia winampMedia;
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        context = getApplicationContext();
-        inflater = getLayoutInflater();
 
-//        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-//        int introVersion = sharedPref.getInt("introVersion", -1);
-//        if (introVersion < BuildConfig.VERSION_CODE || introVersion == -1) {
-//            Intent intent = new Intent(this, OnboardingActivity.class) ;
-//            startActivity(intent);
-//        }
-
-        Log.d(TAG, "onCreate: " + context.getFilesDir());
-
-        if (! checkPermissionForReadExtertalStorage()) {
-            try {
-                requestPermissionForReadExtertalStorage();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (!checkPermissionForWriteExtertalStorage()) {
-            try {
-                requestPermissionForWriteExtertalStorage();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-//        ProgressDialog progressDialog = new ProgressDialog(this) ;
-//        progressDialog.setIndeterminate(true);
-//        progressDialog.show(this, "Winamp", "Whipping the Llama's Ass ...");
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        winampSkin = new WinampSkin(context, this);
-        winampSkin.setup ();
-        winampMedia = new WinampMedia(context, this);
+        winampSkin = new WinampSkin(getApplicationContext(), this);
+        winampSkin.setup();
+        winampMedia = new WinampMedia(getApplicationContext(), this);
 
-//        setup();
-//        progressDialog.cancel();
-//        Log.d(TAG, "onCreate: Setup complete");
-//        winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri("https://cdn.rawgit.com/captbaritone/webamp/43434d82/mp3/llama-2.91.mp3"));
-//        winampMedia.exoPlayer.play();
-
-        if (Intent.ACTION_VIEW.equals(getIntent().getAction()))
-        {
-            File file = new File(getIntent().getData().getPath());
-            winampSkin.playlistAdd(file.toString(), file.toString());
+        Intent launchIntent = getIntent();
+        if (launchIntent != null && Intent.ACTION_VIEW.equals(launchIntent.getAction())) {
+            addSelectedUri(launchIntent.getData());
         }
-
-
-
     }
 
     @Override
     protected void onDestroy() {
+        if (winampMedia != null) {
+            winampMedia.destroy();
+        }
         super.onDestroy();
-        winampMedia.destroy ();
     }
 
-    void loadFolder (DocumentFile path) {
-        DocumentFile[] files ;
-        try {
-            files = path.listFiles();
-        } catch (NullPointerException e) {
-            Log.e(TAG, "loadFolder: " + e.toString(), e);
-            return ;
-        }
-
-        if (files == null) {
-            Log.e(TAG, String.format("loadFolder: %s returned null files!", path.getUri().getPath()));
-            return ;
-        }
-
-        for (DocumentFile inFile : files) {
-            if (! inFile.isDirectory()) {
-                Log.d(TAG, String.format("loadFolder: adding file %s", inFile.getUri().getPath()));
-                winampSkin.playlistAdd(inFile.getName(), inFile.getUri().toString());
-                winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri(inFile.getUri().getPath()));
-
-            } else {
-                loadFolder(inFile);
-            }
-        }
-
-
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        getContentResolver().takePersistableUriPermission(data.getData(), Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        if (requestCode == winampMedia.OPEN_FILE && resultCode == RESULT_OK) {
-            Uri fullPhotoUri = data.getData();
-            if (fullPhotoUri != null) {
-                Log.d(TAG, "onActivityResult: adding local track " + data.toString());
-                winampSkin.playlistAdd(fullPhotoUri.getLastPathSegment(), fullPhotoUri.toString());
-                winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri(fullPhotoUri));
+        if (resultCode != RESULT_OK || data == null || winampMedia == null) return;
+
+        if (requestCode == OPEN_FILE) {
+            persistReadPermissionIfAvailable(data);
+            ClipData clipData = data.getClipData();
+            if (clipData != null && clipData.getItemCount() > 0) {
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    addSelectedUri(clipData.getItemAt(i).getUri());
+                }
             } else {
-                int count = data.getClipData().getItemCount(),
-                        i = 0 ;
-                for (i = 0 ; i < count ; i ++) {
-                    Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                    winampSkin.playlistAdd(imageUri.getLastPathSegment(), imageUri.toString());
-                    winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri(imageUri));
+                addSelectedUri(data.getData());
+            }
+        } else if (requestCode == OPEN_FOLDER && Build.VERSION.SDK_INT >= 21) {
+            persistReadPermissionIfAvailable(data);
+            Uri treeUri = data.getData();
+            if (treeUri != null) {
+                DocumentFile folder = DocumentFile.fromTreeUri(this, treeUri);
+                if (folder != null) loadFolder(folder);
+            }
+        }
+    }
+
+    private void persistReadPermissionIfAvailable(Intent data) {
+        if (Build.VERSION.SDK_INT < 19 || data.getData() == null) return;
+        int flags = data.getFlags();
+        int takeFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        if ((takeFlags & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0) {
+            try {
+                getContentResolver().takePersistableUriPermission(
+                        data.getData(), takeFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } catch (SecurityException e) {
+                Log.w(TAG, "Provider did not grant persistable access", e);
+            }
+        }
+    }
+
+    private void addSelectedUri(Uri selectedUri) {
+        if (selectedUri == null || winampSkin == null || winampMedia == null) return;
+
+        Uri playableUri = selectedUri;
+        if (Build.VERSION.SDK_INT < 19 && "content".equalsIgnoreCase(selectedUri.getScheme())) {
+            playableUri = copyToPrivateStorage(selectedUri);
+            if (playableUri == null) {
+                winampSkin.alert("Unable to import the selected audio file.");
+                return;
+            }
+        }
+
+        String title = selectedUri.getLastPathSegment();
+        if (title == null || title.length() == 0) title = "Audio track";
+        winampSkin.playlistAdd(title, playableUri.toString());
+        winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri(playableUri));
+    }
+
+    /**
+     * Android 4.1's ACTION_GET_CONTENT grant is temporary. Copy the selected
+     * stream into app-private storage so playlist entries remain playable.
+     */
+    private Uri copyToPrivateStorage(Uri source) {
+        InputStream input = null;
+        FileOutputStream output = null;
+        try {
+            input = getContentResolver().openInputStream(source);
+            if (input == null) return null;
+
+            File directory = new File(getFilesDir(), "imported-audio");
+            if (!directory.exists() && !directory.mkdirs()) return null;
+
+            String name = source.getLastPathSegment();
+            if (name == null) name = "track";
+            name = name.replaceAll("[^A-Za-z0-9._-]", "_");
+            File destination = new File(directory, System.currentTimeMillis() + "_" + name);
+
+            output = new FileOutputStream(destination);
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                output.write(buffer, 0, count);
+            }
+            output.flush();
+            return Uri.fromFile(destination);
+        } catch (IOException | SecurityException e) {
+            Log.e(TAG, "Could not import audio file " + source, e);
+            return null;
+        } finally {
+            try { if (input != null) input.close(); } catch (IOException ignored) { }
+            try { if (output != null) output.close(); } catch (IOException ignored) { }
+        }
+    }
+
+    private void loadFolder(DocumentFile folder) {
+        DocumentFile[] files;
+        try {
+            files = folder.listFiles();
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Unable to list selected folder", e);
+            return;
+        }
+        if (files == null) return;
+
+        for (DocumentFile file : files) {
+            if (file.isDirectory()) {
+                loadFolder(file);
+            } else {
+                String mime = file.getType();
+                if (mime == null || mime.startsWith("audio/")) {
+                    addSelectedUri(file.getUri());
                 }
             }
         }
-        //| Open folder
-        else if (requestCode == winampMedia.OPEN_FOLDER && resultCode == RESULT_OK) {
-            Uri fullPhotoUri = data.getData();
-            if (fullPhotoUri != null) {
-                DocumentFile file = DocumentFile.fromTreeUri(context, fullPhotoUri) ;
-//                File f = new File(fullPhotoUri.getPath());
-                loadFolder(file);
-            }
-        }
     }
-
-    private static final int READ_STORAGE_PERMISSION_REQUEST_CODE = 41;
-    private static final int WRITE_STORAGE_PERMISSION_REQUEST_CODE = 42;
-    public boolean checkPermissionForReadExtertalStorage() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int result = context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE);
-            return result == PackageManager.PERMISSION_GRANTED;
-        }
-        return false;
-    }
-
-    public void requestPermissionForReadExtertalStorage() throws Exception {
-        try {
-            ActivityCompat.requestPermissions((Activity) context, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},
-                    READ_STORAGE_PERMISSION_REQUEST_CODE);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-    public boolean checkPermissionForWriteExtertalStorage() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int result = context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
-            return result == PackageManager.PERMISSION_GRANTED;
-        }
-        return false;
-    }
-
-    public void requestPermissionForWriteExtertalStorage() throws Exception {
-        Log.d(TAG, "requestPermissionForWriteExtertalStorage: Starting request");
-        try {
-            ActivityCompat.requestPermissions((Activity) context, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    WRITE_STORAGE_PERMISSION_REQUEST_CODE);
-        } catch (Exception e) {
-            Log.e(TAG, "requestPermissionForWriteExtertalStorage: Unable to complete operation!");
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
 }
