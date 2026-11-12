@@ -3,41 +3,26 @@ package com.shajikhan.winampskin;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
-import android.os.Handler;
-import android.view.Gravity;
-import android.view.HapticFeedbackConstants;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewConfiguration;
-import android.widget.FrameLayout;
-import android.widget.TextView;
-
 import android.util.AttributeSet;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Hosts the three Winamp panels and lets the user rearrange them by
- * long-pressing the small grip in each panel's title strip.
- *
- * Positions are stored independently for portrait and landscape and are
- * clamped to the visible workspace. Panels magnetically align to one another
- * or sit 5 mm apart when their edges approach within 5 mm.
+ * Positions the three independent Winamp panels. A panel can be moved by
+ * long-pressing anywhere on it. On release, it snaps to a neighbour only
+ * when the result is aligned and leaves a real 5 mm gap.
  */
 public class PanelWorkspace extends FrameLayout {
     private static final String PREFS_NAME = "xenamp_panel_positions";
-    private static final long LONG_PRESS_MS = 500L;
     private static final float SNAP_MM = 5.0f;
 
-    private final Handler handler = new Handler();
     private final SharedPreferences preferences;
     private final List<PanelEntry> entries = new ArrayList<>();
-    private final int touchSlop;
     private int snapDistancePx;
-    private boolean configured;
     private int requestedPanelWidth;
     private int requestedPanelHeight;
     private View mainPanel;
@@ -47,8 +32,8 @@ public class PanelWorkspace extends FrameLayout {
     public PanelWorkspace(Context context, AttributeSet attrs) {
         super(context, attrs);
         preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
-        snapDistancePx = Math.round(SNAP_MM * getResources().getDisplayMetrics().densityDpi / 25.4f);
+        snapDistancePx = Math.max(1, Math.round(
+                SNAP_MM * getResources().getDisplayMetrics().densityDpi / 25.4f));
         setClipChildren(true);
     }
 
@@ -81,46 +66,52 @@ public class PanelWorkspace extends FrameLayout {
         }
     }
 
-    private void applyLayout(int requestedPanelWidth, int requestedPanelHeight) {
-        final int workspaceWidth = getWidth();
-        final int workspaceHeight = getHeight();
+    private void applyLayout(int requestedWidth, int requestedHeight) {
+        int workspaceWidth = getWidth();
+        int workspaceHeight = getHeight();
         if (workspaceWidth <= 0 || workspaceHeight <= 0
                 || mainPanel == null || equalizerPanel == null || playlistPanel == null) {
             return;
         }
 
-        final float density = getResources().getDisplayMetrics().density;
-        final int gap = Math.max(1, snapDistancePx);
-        final int panelWidth = Math.min(workspaceWidth, requestedPanelWidth);
-        final int panelHeight = Math.min(workspaceHeight, requestedPanelHeight);
-        final boolean landscape = getResources().getConfiguration().orientation
+        int gap = snapDistancePx;
+        boolean landscape = getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
-        final int remainingWidth = workspaceWidth - panelWidth - gap;
-        final boolean sideBySide = landscape && remainingWidth >= dp(180);
 
-        final String orientationKey = landscape ? "landscape_" : "portrait_";
-        final int mainDefaultX = sideBySide ? 0 : Math.max(0, (workspaceWidth - panelWidth) / 2);
-        final int mainDefaultY = 0;
-        final int equalizerDefaultX = mainDefaultX;
-        final int equalizerDefaultY = Math.min(workspaceHeight, panelHeight + gap);
-        final int playlistDefaultX = sideBySide ? panelWidth + gap : 0;
-        final int playlistDefaultY = sideBySide ? 0
-                : Math.min(workspaceHeight, panelHeight * 2 + gap * 2);
-        final int playlistWidth = sideBySide ? remainingWidth : workspaceWidth;
-        final int playlistHeight = sideBySide ? workspaceHeight
+        // Leave room for the playlist in portrait, while keeping the two
+        // Winamp-sized panels at their natural aspect ratio.
+        int minimumPlaylistHeight = landscape ? 0 : dp(90);
+        int maxPanelHeight = Math.max(dp(64),
+                (workspaceHeight - 2 * gap - minimumPlaylistHeight) / 2);
+        int panelHeight = Math.min(requestedHeight, maxPanelHeight);
+        int panelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
+                Math.round(panelHeight * 275f / 116f));
+
+        int remainingWidth = workspaceWidth - panelWidth - gap;
+        boolean sideBySide = landscape && remainingWidth >= dp(180);
+        String orientationKey = landscape ? "landscape_" : "portrait_";
+
+        int mainDefaultX = sideBySide ? 0 : Math.max(0, (workspaceWidth - panelWidth) / 2);
+        int mainDefaultY = 0;
+        int equalizerDefaultX = mainDefaultX;
+        int equalizerDefaultY = panelHeight + gap;
+        int playlistDefaultX = sideBySide ? panelWidth + gap : 0;
+        int playlistDefaultY = sideBySide ? 0 : 2 * (panelHeight + gap);
+        int playlistWidth = sideBySide ? remainingWidth : workspaceWidth;
+        int playlistHeight = sideBySide ? workspaceHeight
                 : Math.max(0, workspaceHeight - playlistDefaultY);
 
-        configurePanel(mainPanel, "main", orientationKey,
-                panelWidth, panelHeight, mainDefaultX, mainDefaultY);
-        configurePanel(equalizerPanel, "equalizer", orientationKey,
-                panelWidth, panelHeight, equalizerDefaultX, equalizerDefaultY);
-        configurePanel(playlistPanel, "playlist", orientationKey,
-                playlistWidth, playlistHeight, playlistDefaultX, playlistDefaultY);
+        configurePanel(mainPanel, "main", orientationKey, panelWidth, panelHeight,
+                mainDefaultX, mainDefaultY);
+        configurePanel(equalizerPanel, "equalizer", orientationKey, panelWidth, panelHeight,
+                equalizerDefaultX, equalizerDefaultY);
+        configurePanel(playlistPanel, "playlist", orientationKey, playlistWidth, playlistHeight,
+                playlistDefaultX, playlistDefaultY);
 
-        configured = true;
-        for (PanelEntry entry : entries) {
-            positionHandle(entry);
-        }
+        // Old saved positions may have been created by the previous snapping
+        // implementation, which allowed intersections. Discard only positions
+        // that collide, restoring those panels to their safe default locations.
+        restoreNonOverlappingDefaults();
     }
 
     private void configurePanel(View panel, String key, String orientationKey,
@@ -130,189 +121,178 @@ public class PanelWorkspace extends FrameLayout {
         panel.setLayoutParams(params);
 
         float density = getResources().getDisplayMetrics().density;
-        float x = defaultX;
-        float y = defaultY;
         String xKey = orientationKey + key + "_x";
         String yKey = orientationKey + key + "_y";
+        float x = defaultX;
+        float y = defaultY;
         if (preferences.contains(xKey) && preferences.contains(yKey)) {
             x = preferences.getFloat(xKey, defaultX / density) * density;
             y = preferences.getFloat(yKey, defaultY / density) * density;
         }
+
         panel.setX(clamp(x, 0, Math.max(0, getWidth() - width)));
         panel.setY(clamp(y, 0, Math.max(0, getHeight() - height)));
 
-        PanelEntry entry = findEntry(key);
+        PanelEntry entry = findEntry(panel);
         if (entry == null) {
-            entry = new PanelEntry(key, panel);
+            entry = new PanelEntry(key, panel, defaultX, defaultY);
             entries.add(entry);
-            addView(entry.handle, new FrameLayout.LayoutParams(
-                    dp(46), dp(18), Gravity.TOP | Gravity.LEFT));
         } else {
             entry.panel = panel;
+            entry.defaultX = defaultX;
+            entry.defaultY = defaultY;
         }
-        positionHandle(entry);
     }
 
-    private PanelEntry findEntry(String key) {
+    private PanelEntry findEntry(View panel) {
         for (PanelEntry entry : entries) {
-            if (entry.key.equals(key)) return entry;
+            if (entry.panel == panel) return entry;
         }
         return null;
     }
 
-    private void positionHandle(PanelEntry entry) {
-        if (entry.handle.getParent() != this) return;
-        int panelWidth = entry.panel.getLayoutParams() == null
-                ? entry.panel.getWidth() : entry.panel.getLayoutParams().width;
-        if (panelWidth <= 0) panelWidth = entry.panel.getWidth();
-        entry.handle.setX(entry.panel.getX()
-                + Math.max(0, (panelWidth - dp(46)) / 2f));
-        entry.handle.setY(entry.panel.getY() + dp(1));
-        entry.handle.bringToFront();
-    }
-
-    private class PanelEntry {
-        final String key;
-        View panel;
-        final TextView handle;
-        float downRawX;
-        float downRawY;
-        float panelStartX;
-        float panelStartY;
-        boolean dragging;
-        boolean movedBeforeLongPress;
-        final Runnable beginDrag;
-
-        PanelEntry(String key, View panel) {
-            this.key = key;
-            this.panel = panel;
-            handle = new TextView(getContext());
-            handle.setText("•••");
-            handle.setTextSize(10);
-            handle.setTextColor(Color.WHITE);
-            handle.setGravity(Gravity.CENTER);
-            handle.setIncludeFontPadding(false);
-            GradientDrawable background = new GradientDrawable();
-            background.setColor(0xAA303030);
-            background.setCornerRadius(dp(6));
-            background.setStroke(Math.max(1, dp(1)), 0x88FFFFFF);
-            handle.setBackgroundDrawable(background);
-            handle.setAlpha(0.72f);
-
-            beginDrag = new Runnable() {
-                @Override
-                public void run() {
-                    if (!movedBeforeLongPress) {
-                        dragging = true;
-                        panel.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                        panel.bringToFront();
-                        handle.bringToFront();
-                        handle.setAlpha(1.0f);
-                    }
-                }
-            };
-
-            handle.setOnTouchListener(new OnTouchListener() {
-                @Override
-                public boolean onTouch(View view, MotionEvent event) {
-                    switch (event.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            downRawX = event.getRawX();
-                            downRawY = event.getRawY();
-                            panelStartX = panel.getX();
-                            panelStartY = panel.getY();
-                            dragging = false;
-                            movedBeforeLongPress = false;
-                            handler.removeCallbacks(beginDrag);
-                            handler.postDelayed(beginDrag, LONG_PRESS_MS);
-                            return true;
-
-                        case MotionEvent.ACTION_MOVE:
-                            float dx = event.getRawX() - downRawX;
-                            float dy = event.getRawY() - downRawY;
-                            if (!dragging && (Math.abs(dx) > touchSlop || Math.abs(dy) > touchSlop)) {
-                                movedBeforeLongPress = true;
-                                handler.removeCallbacks(beginDrag);
-                            }
-                            if (dragging) {
-                                panel.setX(clamp(panelStartX + dx, 0,
-                                        Math.max(0, getWidth() - panel.getWidth())));
-                                panel.setY(clamp(panelStartY + dy, 0,
-                                        Math.max(0, getHeight() - panel.getHeight())));
-                                positionHandle(PanelEntry.this);
-                            }
-                            return true;
-
-                        case MotionEvent.ACTION_UP:
-                        case MotionEvent.ACTION_CANCEL:
-                            handler.removeCallbacks(beginDrag);
-                            if (dragging) {
-                                snapToNeighbours(PanelEntry.this);
-                                savePosition(PanelEntry.this);
-                            }
-                            dragging = false;
-                            handle.setAlpha(0.72f);
-                            positionHandle(PanelEntry.this);
-                            return true;
-                    }
-                    return true;
-                }
-            });
+    private void restoreNonOverlappingDefaults() {
+        for (int i = 0; i < entries.size(); i++) {
+            PanelEntry entry = entries.get(i);
+            if (!hasOverlapWithEarlierEntries(entry, i)) continue;
+            entry.panel.setX(clamp(entry.defaultX, 0,
+                    Math.max(0, getWidth() - panelWidth(entry.panel))));
+            entry.panel.setY(clamp(entry.defaultY, 0,
+                    Math.max(0, getHeight() - panelHeight(entry.panel))));
         }
     }
 
-    private void snapToNeighbours(PanelEntry moving) {
-        final int gap = snapDistancePx;
-        float x = moving.panel.getX();
-        float y = moving.panel.getY();
-        float bestX = x;
-        float bestY = y;
-        float bestDx = snapDistancePx + 1;
-        float bestDy = snapDistancePx + 1;
-        int movingWidth = moving.panel.getWidth();
-        int movingHeight = moving.panel.getHeight();
+    private boolean hasOverlapWithEarlierEntries(PanelEntry entry, int entryIndex) {
+        for (int i = 0; i < entryIndex; i++) {
+            if (intersects(entry.panel.getX(), entry.panel.getY(),
+                    panelWidth(entry.panel), panelHeight(entry.panel),
+                    entries.get(i).panel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Called by DraggablePanel after a long-press drag ends. Candidate layouts
+     * are considered as complete (x,y) pairs, never as independent axis snaps.
+     */
+    void onPanelDragFinished(DraggablePanel panel, float startX, float startY) {
+        PanelEntry moving = findEntry(panel);
+        if (moving == null) return;
+
+        float currentX = clamp(panel.getX(), 0, Math.max(0, getWidth() - panelWidth(panel)));
+        float currentY = clamp(panel.getY(), 0, Math.max(0, getHeight() - panelHeight(panel)));
+        float[] best = new float[]{currentX, currentY, Float.MAX_VALUE};
+
+        int movingWidth = panelWidth(panel);
+        int movingHeight = panelHeight(panel);
 
         for (PanelEntry other : entries) {
-            if (other == moving || other.panel.getWidth() <= 0) continue;
-            float ox = other.panel.getX();
-            float oy = other.panel.getY();
-            int ow = other.panel.getWidth();
-            int oh = other.panel.getHeight();
+            if (other == moving) continue;
+            View neighbour = other.panel;
+            int neighbourWidth = panelWidth(neighbour);
+            int neighbourHeight = panelHeight(neighbour);
+            float nx = neighbour.getX();
+            float ny = neighbour.getY();
 
-            float[] xCandidates = {
-                    ox,
-                    ox + ow - movingWidth,
-                    ox + (ow - movingWidth) / 2f,
-                    ox + ow + gap,
-                    ox - gap - movingWidth
+            // Put the moving panel to the left or right of the neighbour,
+            // aligning top edges, bottom edges, or vertical centres.
+            float[] alignedY = {
+                    ny,
+                    ny + neighbourHeight - movingHeight,
+                    ny + (neighbourHeight - movingHeight) / 2f
             };
-            float[] yCandidates = {
-                    oy,
-                    oy + oh - movingHeight,
-                    oy + (oh - movingHeight) / 2f,
-                    oy + oh + gap,
-                    oy - gap - movingHeight
-            };
-
-            for (float candidate : xCandidates) {
-                float distance = Math.abs(x - candidate);
-                if (distance <= snapDistancePx && distance < bestDx) {
-                    bestDx = distance;
-                    bestX = candidate;
-                }
+            float leftX = nx - movingWidth - snapDistancePx;
+            float rightX = nx + neighbourWidth + snapDistancePx;
+            for (float aligned : alignedY) {
+                considerCandidate(panel, currentX, currentY, leftX, aligned, best);
+                considerCandidate(panel, currentX, currentY, rightX, aligned, best);
             }
-            for (float candidate : yCandidates) {
-                float distance = Math.abs(y - candidate);
-                if (distance <= snapDistancePx && distance < bestDy) {
-                    bestDy = distance;
-                    bestY = candidate;
-                }
+
+            // Put the moving panel above or below the neighbour,
+            // aligning left edges, right edges, or horizontal centres.
+            float[] alignedX = {
+                    nx,
+                    nx + neighbourWidth - movingWidth,
+                    nx + (neighbourWidth - movingWidth) / 2f
+            };
+            float aboveY = ny - movingHeight - snapDistancePx;
+            float belowY = ny + neighbourHeight + snapDistancePx;
+            for (float aligned : alignedX) {
+                considerCandidate(panel, currentX, currentY, aligned, aboveY, best);
+                considerCandidate(panel, currentX, currentY, aligned, belowY, best);
             }
         }
 
-        moving.panel.setX(clamp(bestX, 0, Math.max(0, getWidth() - movingWidth)));
-        moving.panel.setY(clamp(bestY, 0, Math.max(0, getHeight() - movingHeight)));
-        positionHandle(moving);
+        if (best[2] < Float.MAX_VALUE) {
+            panel.setX(best[0]);
+            panel.setY(best[1]);
+        } else if (!isPositionFree(panel, currentX, currentY)) {
+            // Never persist a layout in which two windows overlap.
+            panel.setX(clamp(startX, 0, Math.max(0, getWidth() - movingWidth)));
+            panel.setY(clamp(startY, 0, Math.max(0, getHeight() - movingHeight)));
+        } else {
+            panel.setX(currentX);
+            panel.setY(currentY);
+        }
+
+        savePosition(moving);
+        panel.bringToFront();
+    }
+
+    private void considerCandidate(DraggablePanel moving, float currentX, float currentY,
+                                   float candidateX, float candidateY, float[] best) {
+        float dx = Math.abs(currentX - candidateX);
+        float dy = Math.abs(currentY - candidateY);
+        if (dx > snapDistancePx || dy > snapDistancePx) return;
+
+        int width = panelWidth(moving);
+        int height = panelHeight(moving);
+        if (candidateX < 0 || candidateY < 0
+                || candidateX + width > getWidth()
+                || candidateY + height > getHeight()) return;
+        if (!isPositionFree(moving, candidateX, candidateY)) return;
+
+        float distanceSquared = dx * dx + dy * dy;
+        if (distanceSquared < best[2]) {
+            best[0] = candidateX;
+            best[1] = candidateY;
+            best[2] = distanceSquared;
+        }
+    }
+
+    private boolean isPositionFree(View moving, float x, float y) {
+        int width = panelWidth(moving);
+        int height = panelHeight(moving);
+        for (PanelEntry entry : entries) {
+            if (entry.panel == moving) continue;
+            if (intersects(x, y, width, height, entry.panel)) return false;
+        }
+        return true;
+    }
+
+    private boolean intersects(float x, float y, int width, int height, View other) {
+        float otherX = other.getX();
+        float otherY = other.getY();
+        int otherWidth = panelWidth(other);
+        int otherHeight = panelHeight(other);
+        return x < otherX + otherWidth && x + width > otherX
+                && y < otherY + otherHeight && y + height > otherY;
+    }
+
+    private int panelWidth(View panel) {
+        if (panel.getLayoutParams() != null && panel.getLayoutParams().width >= 0) {
+            return panel.getLayoutParams().width;
+        }
+        return panel.getWidth();
+    }
+
+    private int panelHeight(View panel) {
+        if (panel.getLayoutParams() != null && panel.getLayoutParams().height >= 0) {
+            return panel.getLayoutParams().height;
+        }
+        return panel.getHeight();
     }
 
     private void savePosition(PanelEntry entry) {
@@ -331,5 +311,19 @@ public class PanelWorkspace extends FrameLayout {
 
     private float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static class PanelEntry {
+        final String key;
+        View panel;
+        int defaultX;
+        int defaultY;
+
+        PanelEntry(String key, View panel, int defaultX, int defaultY) {
+            this.key = key;
+            this.panel = panel;
+            this.defaultX = defaultX;
+            this.defaultY = defaultY;
+        }
     }
 }
