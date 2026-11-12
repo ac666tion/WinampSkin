@@ -215,6 +215,8 @@ public class WinampSkin {
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public void setup () {
+        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        density = displayMetrics.scaledDensity;
         int height = displayMetrics.heightPixels;
         int width = displayMetrics.widthPixels;
 
@@ -238,6 +240,28 @@ public class WinampSkin {
         setupEqualizer();
         setupPlaylist();
         setupPlaylistManagement();
+    }
+
+    /**
+     * Rebuilds the skin artwork and panel sizes after a configuration change,
+     * without recreating the playlist adapter or the media player.
+     */
+    public void refreshForConfiguration() {
+        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        density = displayMetrics.scaledDensity;
+
+        int width = displayMetrics.widthPixels;
+        float panelHeightDp = Math.min(
+                width / displayMetrics.scaledDensity * 116f / 275f,
+                116f * UPSCALE_FACTOR);
+        mainWindow = mainActivity.findViewById(R.id.main_window);
+        LinearLayout.LayoutParams mainParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
+        mainWindow.setLayoutParams(mainParams);
+
+        setupMainWindow(skin, shuffleState, repeatState);
+        setupEqualizer();
+        setupPlaylist();
     }
 
     public void setupMainWindow (Skin skin, boolean shuffleActive, boolean repeatActive) {
@@ -689,8 +713,9 @@ public class WinampSkin {
         Log.d(TAG, "setupEqualizer: got this far");
 
         equalizer.setBackground(drawable);
+        // Always update dimensions: the same view survives orientation changes.
+        equalizer.setLayoutParams(layoutParams);
         if (on == null) {
-            equalizer.setLayoutParams(layoutParams);
             on = new WinampButton(
                     context,
                     mainActivity,
