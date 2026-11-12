@@ -1,19 +1,50 @@
-# This project has been written from scratch here: https://github.com/djshaji/eva
+# Xenamp Classic — privacy-focused Android fork
 
-# Winamp
-##### Music Player with a familiar look!
-_Ladies and Gentlemen, it's Winamp, for Android!_
+This is a personal fork of **Xenamp**, the open-source Winamp 2.x-inspired Android player originally created by Shaji Khan in [djshaji/WinampSkin](https://github.com/djshaji/WinampSkin).
 
-**[Disclaimer: This is not WInamp. All trademarks are copyright by their respective owners.]**
+The original project is licensed under GPL-2.0. This fork keeps the original Winamp-style interface and skin engine, while removing unnecessary services and improving compatibility with older Android devices.
 
-Introducing Xenamp - A Winamp 2.x clone for Android, written from scratch in Java. It is full open source and features the skinning engine abstracted to be reused in a new project easily. 
+## Goals of this fork
 
-It is still in Alpha, and a long way to go for full release, but some features already work, including (yay!) access to (hopefully) pixel perfect rendering of  over 65,000 skins from the Winamp Skin Museum. 
+- Preserve the classic Winamp 2.x appearance, playlist, and .wsz skin support.
+- Minimum Android version: **Android 4.1 (API 16)**.
+- Remove Firebase Analytics and Crashlytics.
+- Do not include advertising SDKs or analytics SDKs.
+- Declare only the INTERNET permission. Audio files are opened through the Android file picker, using the URI permission granted by the picker.
+- Use Android's legacy Equalizer audio effect rather than API-28 DynamicsProcessing.
+- Use Java's built-in ZIP support for Winamp skin archives.
+- Do not load a remote featured-music feed or include demo tracks.
 
-Currently in Alpha, testing only!
+Internet access is used only for functions explicitly requested in the app, such as a manually entered stream or the online skin browser/download. Local playback does not require an account or an internet connection.
 
-### Contribute
-File a bug on the issues tab, or use the discussion _board_ to suggest features and usability improvements.
+## Android 4.1 notes
 
-### License
-GPL v2
+Android 4.1 predates Android's Storage Access Framework. On these devices, **Open File** uses the system's ACTION_GET_CONTENT picker. Selected content URIs are copied into the app's private storage so saved playlist entries remain usable after the temporary picker grant expires.
+
+The system folder picker is only available on Android 5.0 and newer. On Android 4.1, use **Open File** to select tracks.
+
+## Build
+
+The project retains the original compatible build toolchain:
+
+- JDK 11 for Gradle
+- Gradle 7.0.2
+- Android Gradle Plugin 7.0.2
+- Android SDK platform 30
+- Minimum SDK 16
+
+Build locally by running:
+
+~~~bash
+./gradlew --no-daemon clean assembleDebug
+~~~
+
+GitHub Actions builds a debug APK and uploads it as the artifact **xenamp-android-4.1-debug**.
+
+## Package
+
+This fork uses application ID **com.ac666tion.xenamp**, so it can be installed alongside the original Xenamp package.
+
+## Attribution and disclaimer
+
+Xenamp is an independent Winamp 2.x-inspired player; it is not the official Winamp application. Winamp and related marks belong to their respective owners. Original project code and artwork remain attributed to their authors. This fork is provided without warranty.
