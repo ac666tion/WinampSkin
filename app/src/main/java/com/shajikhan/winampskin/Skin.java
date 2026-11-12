@@ -201,15 +201,14 @@ public class Skin {
 
             try {
                 Log.d(TAG, "downloadSkin: Opening file");
-                input = new URL(urls [0]).openStream();
-            } catch (FileNotFoundException | MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+                input = new URL(urls[0]).openStream();
+            } catch (FileNotFoundException | MalformedURLException | IOException e) {
+                Log.e(TAG, "Unable to download skin: " + urls[0], e);
+                return null;
             }
 
             try {
-                Log.d(TAG, "downloadSkin: Downloading skin: " + urls [0]);
+                Log.d(TAG, "downloadSkin: Downloading skin: " + urls[0]);
                 try (OutputStream output = new FileOutputStream(file)) {
                     byte[] buffer = new byte[4 * 1024]; // or other buffer size
                     int read;
