@@ -313,10 +313,6 @@ public class WinampMedia {
     }
 
     void setupPlaylist () {
-//        winampSkin.playlistAdd("U2 - Vertigo", "https://music.shaji.in/media/No%20Destination%20(Preview)/savera.mp3");
-//        winampSkin.playlistAdd("Oasis - Live Forever", "https://music.shaji.in/media/No%20Destination%20(Preview)/savera.mp3");
-//        winampSkin.playlistAdd("Shaji - Savera", "https://music.shaji.in/media/No%20Destination%20(Preview)/savera.mp3");
-//        winampSkin.playlistAdd("Shaji - Savera", "https://music.shaji.in/media/No%20Destination%20(Preview)/savera.mp3");
 
         // if there is no saved playilst, graciously give the user somethign to listen to
         JSONObject savedPlaylist = winampSkin.loadPlaylist(null);
@@ -575,25 +571,25 @@ public class WinampMedia {
                     default:
                         break ;
                     case R.id.menu_about:
-                        url = "https://github.com/djshaji/WinampSkin";
+                        url = "https://github.com/ac666tion/WinampSkin";
                         intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(Uri.parse(url));
                         mainActivity.startActivity(intent);
                         break;
                     case R.id.menu_report_bug:
-                        url = "https://github.com/djshaji/WinampSkin/issues/new/choose";
+                        url = "https://github.com/ac666tion/WinampSkin/issues/new/choose";
                         Intent i = new Intent(Intent.ACTION_VIEW);
                         i.setData(Uri.parse(url));
                         mainActivity.startActivity(i);
                         break ;
                     case R.id.menu_idea:
-                        url = "https://github.com/djshaji/WinampSkin/discussions/categories/ideas";
+                        url = "https://github.com/ac666tion/WinampSkin/discussions/categories/ideas";
                         intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(Uri.parse(url));
                         mainActivity.startActivity(intent);
                         break ;
                     case R.id.menu_forum:
-                        url = "https://github.com/djshaji/WinampSkin/discussions";
+                        url = "https://github.com/ac666tion/WinampSkin/discussions";
                         intent = new Intent(Intent.ACTION_VIEW);
                         intent.setData(Uri.parse(url));
                         mainActivity.startActivity(intent);
