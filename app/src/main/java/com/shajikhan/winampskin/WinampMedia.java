@@ -97,7 +97,7 @@ public class WinampMedia {
     Context context ;
     MainActivity mainActivity ;
     WinampSkin winampSkin ;
-    ExoPlayer exoPlayer = null;
+    SimpleExoPlayer exoPlayer = null;
     PopupMenu playlistMenuAdd, playlistMenuRemove,
             playlistMenuSelect,  getPlaylistMenuLoad,
             playlistMenuMisc, getPlaylistMenuFab;
