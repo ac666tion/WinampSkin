@@ -30,7 +30,6 @@ import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.SeekBar;
 
-import androidx.annotation.RequiresApi;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -114,7 +113,6 @@ public class WinampMedia {
         setupPlaylist();
         setupPlaylistMenu();
         setupEqualizer();
-//        play (shaji [shaji.length -1][0], shaji [shaji.length -1][1]);
 //        AdaptiveTrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
 //        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
         playerNotificationManager = PlayerNotificationManager.createWithNotificationChannel(mainActivity.context, "Xenamp", R.string.app_name, notificationId, mediaDescriptionAdapter, new PlayerNotificationManager.NotificationListener() {
