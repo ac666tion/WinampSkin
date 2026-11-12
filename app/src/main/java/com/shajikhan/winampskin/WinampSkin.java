@@ -222,7 +222,15 @@ public class WinampSkin {
         LinearLayout window = mainActivity.findViewById(R.id.window);
 
         mainWindow = mainActivity.findViewById(R.id.main_window);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel((int) (width / displayMetrics.scaledDensity  * 116f/275f))) ;
+        // Scale the 275x116 Winamp artwork to the available width, but do not
+        // enlarge it beyond the artwork's configured 1.43x scale. On tablets in
+        // landscape this keeps the main window and equalizer from consuming the
+        // entire vertical space and hiding the playlist.
+        float panelHeightDp = Math.min(
+                width / displayMetrics.scaledDensity * 116f / 275f,
+                116f * UPSCALE_FACTOR);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
 //        Log.d(TAG, "setup: " + width / displayMetrics.scaledDensity  * 116f/275f);
         mainWindow.setLayoutParams(layoutParams);
 
@@ -596,7 +604,11 @@ public class WinampSkin {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public void setupEqualizer () {
         LinearLayout equalizer = mainActivity.findViewById(R.id.equalizer);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel((int) (displayMetrics.widthPixels / displayMetrics.scaledDensity  * 116f/275f))) ;
+        float panelHeightDp = Math.min(
+                displayMetrics.widthPixels / displayMetrics.scaledDensity * 116f / 275f,
+                116f * UPSCALE_FACTOR);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, convertDpToPixel(panelHeightDp));
 
         Bitmap mBitmap = BitmapFactory.decodeResource(mainActivity.getResources(), R.drawable.eqmain),
                 mBitmap1 = Bitmap.createBitmap(mBitmap, 0, 0, convertDpToPixel(275), convertDpToPixel(116));
