@@ -368,6 +368,11 @@
                     android:background="@android:color/transparent"
                     android:contentDescription="Load audio files"
                     android:id="@+id/playlist_load"/>
+                <com.shajikhan.winampskin.PlaylistResizeHandle
+                    android:id="@+id/playlist_resize_handle"
+                    android:layout_width="32dp"
+                    android:layout_height="40dp"
+                    android:background="@android:color/transparent"/>
 
             </LinearLayout>
         </com.shajikhan.winampskin.DraggablePanel>
