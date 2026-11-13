@@ -180,7 +180,10 @@ public class PanelWorkspace extends FrameLayout {
     }
 
     private void restoreSafeDefaults() {
-        boolean invalidLayout = false;
+        // Version 1 saved a deliberate 5 mm gap. Reset those old coordinates
+        // once so upgraded panels start edge-to-edge as requested.
+        boolean outdatedLayout = preferences.getInt("layout_version", 0) < 2;
+        boolean invalidLayout = outdatedLayout;
         for (PanelEntry entry : entries) {
             if (!isPositionSafe(entry.panel, entry.panel.getX(), entry.panel.getY())) {
                 invalidLayout = true;
@@ -198,6 +201,9 @@ public class PanelWorkspace extends FrameLayout {
                 entry.panel.setY(clamp(entry.defaultY, 0,
                         Math.max(0, getHeight() - panelHeight(entry.panel))));
             }
+        }
+        if (outdatedLayout) {
+            preferences.edit().putInt("layout_version", 2).apply();
         }
     }
 
