@@ -16,6 +16,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.audiofx.AudioEffect;
 import android.net.Uri;
+import android.provider.MediaStore;
+import android.database.Cursor;
+import java.util.ArrayList;
 import android.os.Build;
 import android.os.Handler;
 import android.text.Editable;
@@ -483,8 +486,14 @@ public class WinampMedia {
     }
 
     private void openAudioPicker() {
-        Intent intent = new Intent(Build.VERSION.SDK_INT >= 19
-                ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_GET_CONTENT);
+        // Android 4.1–4.3 file pickers usually return only one URI even when
+        // EXTRA_ALLOW_MULTIPLE is supplied. Use the media library's native
+        // multi-choice list on those releases instead.
+        if (Build.VERSION.SDK_INT <= 18) {
+            showLegacyMultiSelect();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("audio/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -514,6 +523,87 @@ public class WinampMedia {
             Log.e(TAG, "Could not launch the audio picker", e);
             winampSkin.alert("Could not open the audio file browser: " + e.getMessage());
         }
+    }
+
+    private void showLegacyMultiSelect() {
+        final ArrayList<Uri> trackUris = new ArrayList<>();
+        final ArrayList<String> trackLabels = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            String[] columns = {
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.TITLE,
+                    MediaStore.Audio.Media.ARTIST
+            };
+            cursor = mainActivity.getContentResolver().query(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    columns,
+                    MediaStore.Audio.Media.IS_MUSIC + " != 0",
+                    null,
+                    MediaStore.Audio.Media.TITLE + " COLLATE NOCASE ASC");
+            if (cursor != null) {
+                int idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                int titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                int artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                while (cursor.moveToNext()) {
+                    long id = cursor.getLong(idColumn);
+                    String title = cursor.getString(titleColumn);
+                    String artist = cursor.getString(artistColumn);
+                    if (title == null || title.trim().length() == 0) title = "Audio track " + id;
+                    if (artist == null || artist.trim().length() == 0
+                            || MediaStore.UNKNOWN_STRING.equals(artist)) {
+                        trackLabels.add(title);
+                    } else {
+                        trackLabels.add(title + " — " + artist);
+                    }
+                    trackUris.add(Uri.withAppendedPath(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(id)));
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Unable to read the device music library", e);
+            winampSkin.alert("Unable to read music files: " + e.getMessage());
+            return;
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+
+        if (trackUris.isEmpty()) {
+            new AlertDialog.Builder(mainActivity)
+                    .setTitle("Add music")
+                    .setMessage("No indexed music files were found. Copy music to the tablet or use a file manager to open an audio file.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+
+        final boolean[] checked = new boolean[trackUris.size()];
+        final ArrayList<Integer> selected = new ArrayList<>();
+        new AlertDialog.Builder(mainActivity)
+                .setTitle("Select tracks (" + trackUris.size() + ")")
+                .setMultiChoiceItems(trackLabels.toArray(new String[0]), checked,
+                        new DialogInterface.OnMultiChoiceClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                                if (isChecked) selected.add(which);
+                                else selected.remove(Integer.valueOf(which));
+                            }
+                        })
+                .setPositiveButton("Add selected", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (selected.isEmpty()) {
+                            winampSkin.alert("Select at least one track.");
+                            return;
+                        }
+                        for (Integer index : selected) {
+                            mainActivity.addSelectedUri(trackUris.get(index), trackLabels.get(index));
+                        }
+                        Log.i(TAG, "Added " + selected.size() + " tracks to playlist");
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void openFolderPicker() {
