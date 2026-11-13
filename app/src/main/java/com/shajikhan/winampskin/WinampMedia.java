@@ -231,6 +231,9 @@ public class WinampMedia {
         winampSkin.play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (exoPlayer.getPlaybackState() == Player.STATE_IDLE) {
+                    exoPlayer.prepare();
+                }
                 exoPlayer.play();
             }
         });
@@ -341,6 +344,17 @@ public class WinampMedia {
                 }
             }
         }
+
+        // Restore the saved playlist into ExoPlayer as well as the visible
+        // list, so the physical PLAY button works immediately after launch.
+        exoPlayer.clearMediaItems();
+        for (String track : winampSkin.playlistElements) {
+            Object savedUri = winampSkin.playlistUri.get(track);
+            if (savedUri != null) {
+                exoPlayer.addMediaItem(MediaItem.fromUri(String.valueOf(savedUri)));
+            }
+        }
+        if (exoPlayer.getMediaItemCount() > 0) exoPlayer.prepare();
 
         Log.d(TAG, "setupPlaylist: " +
                 winampSkin.playlistElements.toString() + "\n"+
