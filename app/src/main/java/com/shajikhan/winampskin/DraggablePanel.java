@@ -27,6 +27,7 @@ public class DraggablePanel extends LinearLayout {
     private boolean longPressReady;
     private boolean dragging;
     private boolean moved;
+    private boolean resizingHandleTouch;
 
     private final Runnable armDrag = new Runnable() {
         @Override
@@ -45,6 +46,7 @@ public class DraggablePanel extends LinearLayout {
     public boolean onInterceptTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                resizingHandleTouch = isOverResizeHandle(event.getRawX(), event.getRawY());
                 downRawX = event.getRawX();
                 downRawY = event.getRawY();
                 startX = getX();
@@ -57,6 +59,7 @@ public class DraggablePanel extends LinearLayout {
                 return false;
 
             case MotionEvent.ACTION_MOVE:
+                if (resizingHandleTouch) return false;
                 if (dragging) return true;
                 if (longPressReady) {
                     dragging = true;
@@ -74,6 +77,12 @@ public class DraggablePanel extends LinearLayout {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (resizingHandleTouch) {
+                    resizingHandleTouch = false;
+                    handler.removeCallbacks(armDrag);
+                    longPressReady = false;
+                    return false;
+                }
                 // A long press without a following movement is just a hold,
                 // not a drag. Leave the child's normal click/tap behaviour intact.
                 handler.removeCallbacks(armDrag);
@@ -122,6 +131,15 @@ public class DraggablePanel extends LinearLayout {
     @Override
     public void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
         // Intentionally ignored: long-press panel dragging remains available.
+    }
+
+    private boolean isOverResizeHandle(float rawX, float rawY) {
+        View handle = findViewById(R.id.playlist_resize_handle);
+        if (handle == null || handle.getVisibility() != View.VISIBLE) return false;
+        int[] location = new int[2];
+        handle.getLocationOnScreen(location);
+        return rawX >= location[0] && rawX <= location[0] + handle.getWidth()
+                && rawY >= location[1] && rawY <= location[1] + handle.getHeight();
     }
 
     private void finishGesture() {
