@@ -125,6 +125,16 @@ public class PanelWorkspace extends FrameLayout {
                 equalizerDefaultX, equalizerDefaultY);
         configurePanel(playlistPanel, "playlist", orientationKey, playlistWidth, playlistHeight,
                 playlistDefaultX, playlistDefaultY);
+        int savedPlaylistWidth = preferences.getInt(orientationKey + "playlist_width", -1);
+        int savedPlaylistHeight = preferences.getInt(orientationKey + "playlist_height", -1);
+        if (savedPlaylistWidth > 0 && savedPlaylistHeight > 0) {
+            FrameLayout.LayoutParams saved = (FrameLayout.LayoutParams) playlistPanel.getLayoutParams();
+            saved.width = Math.min(dp(savedPlaylistWidth),
+                    Math.max(dp(160), workspaceWidth - (int) playlistPanel.getX()));
+            saved.height = Math.min(dp(savedPlaylistHeight),
+                    Math.max(dp(100), workspaceHeight - (int) playlistPanel.getY()));
+            playlistPanel.setLayoutParams(saved);
+        }
 
         // Old saved positions may have been created by the previous snapping
         // implementation, which allowed intersections. Discard only positions
