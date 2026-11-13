@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
 
         Uri playableUri = selectedUri;
         if (Build.VERSION.SDK_INT < 19 && "content".equalsIgnoreCase(selectedUri.getScheme())) {
-            playableUri = copyToPrivateStorage(selectedUri);
+            playableUri = copyToPrivateStorage(selectedUri, displayTitle);
             if (playableUri == null) {
                 winampSkin.alert("Unable to import the selected audio file.");
                 return;
@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
      * Android 4.1's ACTION_GET_CONTENT grant is temporary. Copy the selected
      * stream into app-private storage so playlist entries remain playable.
      */
-    private Uri copyToPrivateStorage(Uri source) {
+    private Uri copyToPrivateStorage(Uri source, String suggestedName) {
         InputStream input = null;
         FileOutputStream output = null;
         try {
@@ -156,10 +156,11 @@ public class MainActivity extends AppCompatActivity {
             File directory = new File(getFilesDir(), "imported-audio");
             if (!directory.exists() && !directory.mkdirs()) return null;
 
-            String name = source.getLastPathSegment();
-            if (name == null) name = "track";
+            String name = suggestedName;
+            if (name == null || name.trim().length() == 0) name = "audio-track";
             name = name.replaceAll("[^A-Za-z0-9._-]", "_");
-            File destination = new File(directory, System.currentTimeMillis() + "_" + name);
+            if (name.length() < 3) name = "track_" + name;
+            File destination = File.createTempFile(name.substring(0, Math.min(name.length(), 32)) + "_", ".audio", directory);
 
             output = new FileOutputStream(destination);
             byte[] buffer = new byte[8192];
