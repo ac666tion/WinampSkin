@@ -7,6 +7,9 @@ import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AbsSeekBar;
 import android.widget.LinearLayout;
 
 /**
@@ -28,6 +31,7 @@ public class DraggablePanel extends LinearLayout {
     private boolean dragging;
     private boolean moved;
     private boolean resizingHandleTouch;
+    private boolean interactiveChildTouch;
 
     private final Runnable armDrag = new Runnable() {
         @Override
@@ -47,6 +51,7 @@ public class DraggablePanel extends LinearLayout {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 resizingHandleTouch = isOverResizeHandle(event.getRawX(), event.getRawY());
+                interactiveChildTouch = isInteractiveChildAt(event.getX(), event.getY());
                 downRawX = event.getRawX();
                 downRawY = event.getRawY();
                 startX = getX();
@@ -55,11 +60,13 @@ public class DraggablePanel extends LinearLayout {
                 dragging = false;
                 moved = false;
                 handler.removeCallbacks(armDrag);
-                handler.postDelayed(armDrag, LONG_PRESS_TIMEOUT_MS);
+                if (!interactiveChildTouch) {
+                    handler.postDelayed(armDrag, LONG_PRESS_TIMEOUT_MS);
+                }
                 return false;
 
             case MotionEvent.ACTION_MOVE:
-                if (resizingHandleTouch) return false;
+                if (interactiveChildTouch || resizingHandleTouch) return false;
                 if (dragging) return true;
                 if (longPressReady) {
                     dragging = true;
@@ -77,6 +84,12 @@ public class DraggablePanel extends LinearLayout {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                if (interactiveChildTouch) {
+                    interactiveChildTouch = false;
+                    handler.removeCallbacks(armDrag);
+                    longPressReady = false;
+                    return false;
+                }
                 if (resizingHandleTouch) {
                     resizingHandleTouch = false;
                     handler.removeCallbacks(armDrag);
@@ -133,6 +146,38 @@ public class DraggablePanel extends LinearLayout {
         // Intentionally ignored: long-press panel dragging remains available.
     }
 
+    /**
+     * Buttons, sliders and the playlist are always owned by their child views.
+     * This prevents the panel's long-press drag gesture from stealing ordinary
+     * taps, seek gestures, popup-menu buttons or playlist row selection.
+     */
+    private boolean isInteractiveChildAt(float x, float y) {
+        return findInteractiveChild(this, x, y);
+    }
+
+    private boolean findInteractiveChild(ViewGroup parent, float x, float y) {
+        for (int i = parent.getChildCount() - 1; i >= 0; i--) {
+            View child = parent.getChildAt(i);
+            float left = child.getLeft() - parent.getScrollX();
+            float top = child.getTop() - parent.getScrollY();
+            float right = left + child.getWidth();
+            float bottom = top + child.getHeight();
+            if (x < left || x >= right || y < top || y >= bottom) continue;
+
+            float childX = x - left;
+            float childY = y - top;
+            if (child instanceof ViewGroup
+                    && findInteractiveChild((ViewGroup) child, childX, childY)) {
+                return true;
+            }
+            if (child.isClickable() || child.isLongClickable()
+                    || child instanceof AbsSeekBar || child instanceof AdapterView) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isOverResizeHandle(float rawX, float rawY) {
         View handle = findViewById(R.id.playlist_resize_handle);
         if (handle == null || handle.getVisibility() != View.VISIBLE) return false;
@@ -147,6 +192,8 @@ public class DraggablePanel extends LinearLayout {
         longPressReady = false;
         dragging = false;
         moved = false;
+        interactiveChildTouch = false;
+        resizingHandleTouch = false;
         setAlpha(1.0f);
     }
 
