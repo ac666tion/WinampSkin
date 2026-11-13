@@ -487,24 +487,32 @@ public class WinampMedia {
                 ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_GET_CONTENT);
         intent.setType("audio/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         if (Build.VERSION.SDK_INT >= 18) {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         }
 
         try {
-            if (Build.VERSION.SDK_INT >= 19) {
-                // Android's document picker is the most reliable source of
-                // persistent URI access on KitKat and newer.
-                mainActivity.startActivityForResult(intent, OPEN_FILE);
-            } else {
-                // Android 4.1–4.3: show the installed file/audio providers as
-                // a chooser, since these releases do not have ACTION_OPEN_DOCUMENT.
-                mainActivity.startActivityForResult(
-                        Intent.createChooser(intent, "Select audio files"), OPEN_FILE);
+            if (intent.resolveActivity(mainActivity.getPackageManager()) == null
+                    && Build.VERSION.SDK_INT >= 19) {
+                // Some older Android builds have no document picker provider.
+                intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("audio/*");
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                if (Build.VERSION.SDK_INT >= 18) {
+                    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                }
             }
-        } catch (ActivityNotFoundException e) {
-            winampSkin.alert("No file browser is available to select audio files.");
-            Log.e(TAG, "No audio file picker activity is installed", e);
+            if (intent.resolveActivity(mainActivity.getPackageManager()) == null) {
+                winampSkin.alert("No audio file browser is installed. Install or enable a file manager first.");
+                return;
+            }
+            mainActivity.startActivityForResult(
+                    Intent.createChooser(intent, "Choose audio files"), OPEN_FILE);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            Log.e(TAG, "Could not launch the audio picker", e);
+            winampSkin.alert("Could not open the audio file browser: " + e.getMessage());
         }
     }
 
