@@ -113,7 +113,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void addSelectedUri(Uri selectedUri) {
+    void addSelectedUri(Uri selectedUri) {
+        addSelectedUri(selectedUri, null);
+    }
+
+    void addSelectedUri(Uri selectedUri, String displayTitle) {
         if (selectedUri == null || winampSkin == null || winampMedia == null) return;
 
         Uri playableUri = selectedUri;
@@ -125,10 +129,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        String title = selectedUri.getLastPathSegment();
+        String title = displayTitle;
+        if (title == null || title.trim().length() == 0) {
+            title = selectedUri.getLastPathSegment();
+        }
         if (title == null || title.length() == 0) title = "Audio track";
         winampSkin.playlistAdd(title, playableUri.toString());
+        boolean playerWasIdle = winampMedia.exoPlayer.getPlaybackState() == com.google.android.exoplayer2.Player.STATE_IDLE;
         winampMedia.exoPlayer.addMediaItem(MediaItem.fromUri(playableUri));
+        // Adding the first track must prepare the queue; otherwise the PLAY
+        // button has nothing prepared and only tapping a playlist row starts it.
+        if (playerWasIdle) winampMedia.exoPlayer.prepare();
     }
 
     /**
