@@ -14,11 +14,11 @@ import java.util.List;
 /**
  * Positions the three independent Winamp panels. A panel can be moved by
  * long-pressing anywhere on it. On release, it snaps to a neighbour only
- * when the result is aligned and leaves a real 5 mm gap.
+ * when the result is aligned and touches the neighbouring panel without overlapping it.
  */
 public class PanelWorkspace extends FrameLayout {
     private static final String PREFS_NAME = "xenamp_panel_positions";
-    private static final float SNAP_MM = 5.0f;
+    private static final float SNAP_MM = 10.0f;
 
     private final SharedPreferences preferences;
     private final List<PanelEntry> entries = new ArrayList<>();
@@ -74,7 +74,7 @@ public class PanelWorkspace extends FrameLayout {
             return;
         }
 
-        int gap = snapDistancePx;
+        int gap = 0;
         boolean landscape = getResources().getConfiguration().orientation
                 == Configuration.ORIENTATION_LANDSCAPE;
 
@@ -82,13 +82,13 @@ public class PanelWorkspace extends FrameLayout {
         // Winamp-sized panels at their natural aspect ratio.
         // In landscape, first try the classic two-column arrangement: the
         // main player and equalizer stack on the left, playlist on the right.
-        int sidePanelMaxHeight = Math.max(dp(64), (workspaceHeight - gap) / 2);
+        int sidePanelMaxHeight = Math.max(dp(64), workspaceHeight / 2);
         int sidePanelHeight = Math.min(requestedHeight, sidePanelMaxHeight);
         int sidePanelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
                 Math.round(sidePanelHeight * 275f / 116f));
         sidePanelHeight = Math.round(sidePanelWidth * 116f / 275f);
         boolean sideBySide = landscape
-                && workspaceWidth - sidePanelWidth - gap >= dp(180);
+                && workspaceWidth - sidePanelWidth >= dp(180);
 
         int panelWidth;
         int panelHeight;
@@ -99,22 +99,22 @@ public class PanelWorkspace extends FrameLayout {
             // In a single-column layout keep at least 90 dp for the playlist,
             // even when a landscape screen is relatively short.
             int maxPanelHeight = Math.max(dp(64),
-                    (workspaceHeight - 2 * gap - dp(90)) / 2);
+                    (workspaceHeight - dp(90)) / 2);
             panelHeight = Math.min(requestedHeight, maxPanelHeight);
             panelWidth = Math.min(Math.min(requestedWidth, workspaceWidth),
                     Math.round(panelHeight * 275f / 116f));
             panelHeight = Math.round(panelWidth * 116f / 275f);
         }
 
-        int remainingWidth = workspaceWidth - panelWidth - gap;
+        int remainingWidth = workspaceWidth - panelWidth;
         String orientationKey = landscape ? "landscape_" : "portrait_";
 
         int mainDefaultX = sideBySide ? 0 : Math.max(0, (workspaceWidth - panelWidth) / 2);
         int mainDefaultY = 0;
         int equalizerDefaultX = mainDefaultX;
-        int equalizerDefaultY = panelHeight + gap;
-        int playlistDefaultX = sideBySide ? panelWidth + gap : 0;
-        int playlistDefaultY = sideBySide ? 0 : 2 * (panelHeight + gap);
+        int equalizerDefaultY = panelHeight;
+        int playlistDefaultX = sideBySide ? panelWidth : 0;
+        int playlistDefaultY = sideBySide ? 0 : 2 * panelHeight;
         int playlistWidth = sideBySide ? remainingWidth : workspaceWidth;
         int playlistHeight = sideBySide ? workspaceHeight
                 : Math.max(0, workspaceHeight - playlistDefaultY);
@@ -221,8 +221,8 @@ public class PanelWorkspace extends FrameLayout {
                     ny + neighbourHeight - movingHeight,
                     ny + (neighbourHeight - movingHeight) / 2f
             };
-            float leftX = nx - movingWidth - snapDistancePx;
-            float rightX = nx + neighbourWidth + snapDistancePx;
+            float leftX = nx - movingWidth;
+            float rightX = nx + neighbourWidth;
             for (float aligned : alignedY) {
                 considerCandidate(panel, currentX, currentY, leftX, aligned, best);
                 considerCandidate(panel, currentX, currentY, rightX, aligned, best);
@@ -235,8 +235,8 @@ public class PanelWorkspace extends FrameLayout {
                     nx + neighbourWidth - movingWidth,
                     nx + (neighbourWidth - movingWidth) / 2f
             };
-            float aboveY = ny - movingHeight - snapDistancePx;
-            float belowY = ny + neighbourHeight + snapDistancePx;
+            float aboveY = ny - movingHeight;
+            float belowY = ny + neighbourHeight;
             for (float aligned : alignedX) {
                 considerCandidate(panel, currentX, currentY, aligned, aboveY, best);
                 considerCandidate(panel, currentX, currentY, aligned, belowY, best);
@@ -281,14 +281,12 @@ public class PanelWorkspace extends FrameLayout {
     }
 
     /**
-     * A final position is safe only when the two panels have at least the
-     * configured 5 mm separation on one full axis. This prevents both overlap
-     * and almost-touching corners/edges after a drag.
+     * A final position is safe when the panel rectangles do not overlap.
+     * Touching edges are explicitly allowed; no visual gap is inserted.
      */
     private boolean isPositionSafe(View moving, float x, float y) {
         int width = panelWidth(moving);
         int height = panelHeight(moving);
-        int gap = snapDistancePx;
         for (PanelEntry entry : entries) {
             View other = entry.panel;
             if (other == moving) continue;
@@ -298,10 +296,10 @@ public class PanelWorkspace extends FrameLayout {
             int otherWidth = panelWidth(other);
             int otherHeight = panelHeight(other);
 
-            boolean separatedLeftRight = x + width + gap <= otherX
-                    || otherX + otherWidth + gap <= x;
-            boolean separatedTopBottom = y + height + gap <= otherY
-                    || otherY + otherHeight + gap <= y;
+            boolean separatedLeftRight = x + width <= otherX
+                    || otherX + otherWidth <= x;
+            boolean separatedTopBottom = y + height <= otherY
+                    || otherY + otherHeight <= y;
             if (!separatedLeftRight && !separatedTopBottom) {
                 return false;
             }
