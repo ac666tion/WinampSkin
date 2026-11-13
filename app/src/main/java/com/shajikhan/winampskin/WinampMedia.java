@@ -551,7 +551,7 @@ public class WinampMedia {
                     String artist = cursor.getString(artistColumn);
                     if (title == null || title.trim().length() == 0) title = "Audio track " + id;
                     if (artist == null || artist.trim().length() == 0
-                            || MediaStore.UNKNOWN_STRING.equals(artist)) {
+                            || "<unknown>".equalsIgnoreCase(artist)) {
                         trackLabels.add(title);
                     } else {
                         trackLabels.add(title + " — " + artist);
