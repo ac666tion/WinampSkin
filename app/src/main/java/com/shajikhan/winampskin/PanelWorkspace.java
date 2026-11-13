@@ -307,6 +307,42 @@ public class PanelWorkspace extends FrameLayout {
         return true;
     }
 
+    void resizePlaylist(View panel, int requestedWidth, int requestedHeight) {
+        if (panel != playlistPanel) return;
+        float x = panel.getX();
+        float y = panel.getY();
+        int width = Math.max(dp(160), Math.min(requestedWidth, Math.max(dp(160), getWidth() - (int) x)));
+        int height = Math.max(dp(100), Math.min(requestedHeight, Math.max(dp(100), getHeight() - (int) y)));
+        if (!isPositionSafe(panel, x, y, width, height)) return;
+
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) panel.getLayoutParams();
+        params.width = width;
+        params.height = height;
+        panel.setLayoutParams(params);
+        panel.requestLayout();
+
+        float density = getResources().getDisplayMetrics().density;
+        String orientationKey = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE ? "landscape_" : "portrait_";
+        preferences.edit()
+                .putInt(orientationKey + "playlist_width", Math.round(width / density))
+                .putInt(orientationKey + "playlist_height", Math.round(height / density))
+                .apply();
+    }
+
+    private boolean isPositionSafe(View moving, float x, float y, int width, int height) {
+        for (PanelEntry entry : entries) {
+            View other = entry.panel;
+            if (other == moving) continue;
+            boolean separatedLeftRight = x + width <= other.getX()
+                    || other.getX() + panelWidth(other) <= x;
+            boolean separatedTopBottom = y + height <= other.getY()
+                    || other.getY() + panelHeight(other) <= y;
+            if (!separatedLeftRight && !separatedTopBottom) return false;
+        }
+        return true;
+    }
+
     private int panelWidth(View panel) {
         if (panel.getLayoutParams() != null && panel.getLayoutParams().width >= 0) {
             return panel.getLayoutParams().width;
