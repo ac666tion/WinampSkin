@@ -9,8 +9,8 @@ android {
         applicationId "com.ac666tion.xenamp"
         minSdkVersion 16
         targetSdkVersion 30
-        versionCode 9
-        versionName '0.4-private'
+        versionCode 10
+        versionName '0.5-private'
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
