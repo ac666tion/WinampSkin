@@ -1032,8 +1032,16 @@ public class WinampSkin {
     }
 
     public void playlistAdd (String track, String uri) {
-        playlistElements.add(track);
-        playlistUri.put (track, uri);
+        // Keep duplicate titles as separate entries instead of overwriting
+        // the URI already stored under the same playlist key.
+        String uniqueTrack = track;
+        int duplicate = 2;
+        while (playlistUri.containsKey(uniqueTrack)) {
+            uniqueTrack = track + " (" + duplicate + ")";
+            duplicate++;
+        }
+        playlistElements.add(uniqueTrack);
+        playlistUri.put(uniqueTrack, uri);
         playlistAdapter.notifyDataSetChanged();
         savePlaylist();
     }
