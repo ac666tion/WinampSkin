@@ -8,6 +8,7 @@ A minimal Android launcher for https://www.lamaniec.pl/ using Mozilla GeckoView.
 - GeckoView 118.0.20231009140911 (pre-API-21 build)
 
 ## Version 0.2.0
+- Uses a separate application ID so it can be installed beside the first test build without uninstalling it.
 - Forces a device-width mobile viewport at document start.
 - Re-applies the viewport if the site overwrites it.
 - Adds conservative wrapping for long instructions and responsive media.
