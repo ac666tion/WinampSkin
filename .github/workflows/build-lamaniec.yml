@@ -6,6 +6,11 @@ on:
     paths:
       - "Lamaniec41/**"
       - ".github/workflows/build-lamaniec.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Lamaniec41/**"
+      - ".github/workflows/build-lamaniec.yml"
   workflow_dispatch:
 
 permissions:
