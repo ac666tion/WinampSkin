@@ -1,5 +1,7 @@
 package pl.lichessclassic;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -12,10 +14,14 @@ import android.graphics.drawable.GradientDrawable;
 import android.support.v7.app.AppCompatActivity;
 
 import pl.lichessclassic.auth.LichessOAuth;
+import pl.lichessclassic.net.LichessBoardApi;
 
 public class MainActivity extends AppCompatActivity {
     private TextView accountStatus;
     private Button loginButton;
+    private Button randomButton;
+    private LichessBoardApi boardApi;
+    private boolean searching = false;
 
     private int dp(float value) { return (int) (value * getResources().getDisplayMetrics().density + 0.5f); }
 
@@ -44,17 +50,18 @@ public class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams loginLp = new LinearLayout.LayoutParams(-1, dp(56)); loginLp.topMargin = dp(10); loginLp.bottomMargin = dp(20); page.addView(loginButton, loginLp);
 
         page.addView(section("GRA ONLINE"));
-        page.addView(actionButton("Znajdź losowego przeciwnika", true, new View.OnClickListener() {
-            @Override public void onClick(View v) { notReady("Kolejka gry online będzie kolejnym etapem po sprawdzeniu logowania i połączenia."); }
-        }));
+        randomButton = actionButton("Znajdź losowego przeciwnika", true, new View.OnClickListener() {
+            @Override public void onClick(View v) { toggleRandomSearch(); }
+        });
+        page.addView(randomButton);
         page.addView(actionButton("Zaproś znajomego", false, new View.OnClickListener() {
-            @Override public void onClick(View v) { notReady("Wyzwania znajomych będą podłączone po uruchomieniu modułu partii."); }
+            @Override public void onClick(View v) { notReady("Wyzwania znajomych będą następnym etapem po uruchomieniu wyszukiwania losowego przeciwnika."); }
         }));
         LinearLayout.LayoutParams secLp = new LinearLayout.LayoutParams(-1, -2); secLp.topMargin = dp(22); page.addView(section("GRA OFFLINE"), secLp);
         page.addView(actionButton("Graj z komputerem", false, new View.OnClickListener() {
             @Override public void onClick(View v) { notReady("Silnik Stockfish jest zaplanowany na kolejny etap."); }
         }));
-        TextView footer = new TextView(this); footer.setText("WERSJA 0.2.1  •  ANDROID 4.1+  •  BEZ REKLAM");
+        TextView footer = new TextView(this); footer.setText("WERSJA 0.2.2  •  ANDROID 4.1+  •  BEZ REKLAM");
         footer.setTextSize(10); footer.setTextColor(Color.rgb(125, 137, 148)); footer.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams footLp = new LinearLayout.LayoutParams(-1, -2); footLp.topMargin = dp(24); page.addView(footer, footLp);
         setContentView(page);
@@ -81,6 +88,66 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void toggleRandomSearch() {
+        if (searching) {
+            if (boardApi != null) boardApi.cancel();
+            searching = false;
+            randomButton.setText("Znajdź losowego przeciwnika");
+            accountStatus.setText("Wyszukiwanie przeciwnika anulowane.");
+            return;
+        }
+
+        final String token = LichessOAuth.getToken(this);
+        if (token == null || token.length() == 0) {
+            accountStatus.setText("Najpierw połącz konto Lichess. Potem możesz szukać przeciwnika.");
+            return;
+        }
+
+        searching = true;
+        randomButton.setText("Anuluj wyszukiwanie");
+        randomButton.setEnabled(true);
+        accountStatus.setText("Łączenie z Lichess…");
+        boardApi = new LichessBoardApi();
+        boardApi.startRandomSeek(token, new LichessBoardApi.Listener() {
+            @Override public void onStatus(final String message) {
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        accountStatus.setText(message);
+                        if (!searching) randomButton.setText("Znajdź losowego przeciwnika");
+                    }
+                });
+            }
+
+            @Override public void onGameFound(final String gameId) {
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        searching = false;
+                        randomButton.setText("Znajdź kolejnego przeciwnika");
+                        accountStatus.setText("Przeciwnik znaleziony! Otwieram partię w Lichess…");
+                        try {
+                            Intent intent = new Intent(Intent.ACTION_VIEW,
+                                    Uri.parse("https://lichess.org/" + Uri.encode(gameId)));
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            accountStatus.setText("Partia została utworzona (" + gameId
+                                    + "), ale nie udało się otworzyć przeglądarki.");
+                        }
+                    }
+                });
+            }
+
+            @Override public void onError(final String message) {
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        searching = false;
+                        randomButton.setText("Znajdź losowego przeciwnika");
+                        accountStatus.setText(message);
+                    }
+                });
+            }
+        });
+    }
+
     private TextView section(String text) {
         TextView t = new TextView(this); t.setText(text); t.setTextSize(11); t.setTextColor(Color.rgb(90, 112, 127));
         t.setTypeface(Typeface.DEFAULT, Typeface.BOLD); t.setPadding(0, dp(4), 0, dp(10)); return t;
@@ -94,4 +161,10 @@ public class MainActivity extends AppCompatActivity {
         b.setOnClickListener(click); b.setGravity(Gravity.CENTER); b.setTransformationMethod(null); b.setLayoutParams(lp); return b;
     }
     private void notReady(String message) { accountStatus.setText(message); }
+
+    @Override protected void onDestroy() {
+        if (boardApi != null) boardApi.cancel();
+        searching = false;
+        super.onDestroy();
+    }
 }
