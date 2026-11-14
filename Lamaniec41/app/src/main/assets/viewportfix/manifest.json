@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "Lamaniec Legacy Viewport Fix",
+  "version": "1.0.1",
+  "applications": {
+    "gecko": {
+      "id": "lamaniec-viewport-fix@ac666tion"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.lamaniec.pl/*",
+        "https://lamaniec.pl/*"
+      ],
+      "js": ["viewport.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
