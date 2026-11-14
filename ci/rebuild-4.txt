@@ -1,0 +1,1 @@
+Build directly from LichessClassic/ source tree after switching away from damaged packed archive.
