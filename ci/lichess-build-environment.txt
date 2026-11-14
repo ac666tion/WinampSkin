@@ -1,0 +1,4 @@
+Lichess Classic 0.2.1 isolated build branch.
+Android SDK command-line tools are installed with JDK 17.
+Gradle 4.6 / Android Gradle Plugin 3.2.1 build runs with JDK 8.
+Gradle SHA-256: 98bd5fd2b30e070517e03c51cbb32beee3e2ee1a84003a5a5d748996d4b1b915
