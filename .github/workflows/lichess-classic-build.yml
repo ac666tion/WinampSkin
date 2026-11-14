@@ -17,19 +17,26 @@ jobs:
       - name: Checkout build branch
         uses: actions/checkout@v4
 
-      - name: Install JDK 8
+      # Current Android command-line tools require JDK 17.
+      - name: Install JDK 17 for Android SDK tools
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '8'
+          java-version: '17'
 
       - name: Install Android SDK tools
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK 28
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-28" "build-tools;28.0.3"
+
+      # This legacy Android Gradle Plugin/Gradle pair is built with JDK 8.
+      - name: Switch to JDK 8 for Gradle 4.6
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
 
       - name: Extract Lichess Classic sources
         run: |
@@ -43,6 +50,7 @@ jobs:
           curl --fail --location --retry 3 --output /tmp/gradle-4.6-bin.zip https://services.gradle.org/distributions/gradle-4.6-bin.zip
           echo "98bd5fd2b30e070517e03c51cbb32beee3e2ee1a84003a5a5d748996d4b1b915  /tmp/gradle-4.6-bin.zip" | sha256sum --check
           unzip -q /tmp/gradle-4.6-bin.zip -d /tmp
+          /tmp/gradle-4.6/bin/gradle --version
 
       - name: Build debug APK
         run: |
