@@ -6,11 +6,10 @@
 
   function applyViewport() {
     var root = document.documentElement;
-    if (!root) return;
+    var head = document.head;
+    if (!root || !head) return;
 
-    var head = document.head || root;
     var meta = document.querySelector('meta[name="viewport"]');
-
     if (!meta) {
       meta = document.createElement("meta");
       meta.setAttribute("name", "viewport");
@@ -52,13 +51,13 @@
     }
   }
 
-  applyViewport();
-
-  if (window.MutationObserver && document.documentElement) {
+  // Observe the Document itself: at document_start the <head> element may
+  // not exist yet. This lets us insert the viewport before normal page layout.
+  if (window.MutationObserver) {
     var observer = new MutationObserver(function () {
       applyViewport();
     });
-    observer.observe(document.documentElement, {
+    observer.observe(document, {
       childList: true,
       subtree: true,
       attributes: true,
@@ -66,5 +65,6 @@
     });
   }
 
+  applyViewport();
   document.addEventListener("DOMContentLoaded", applyViewport, false);
 })();
