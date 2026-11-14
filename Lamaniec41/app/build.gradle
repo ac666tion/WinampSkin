@@ -7,7 +7,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId 'pl.ac666tion.lamaniec41'
+        applicationId 'pl.ac666tion.lamaniec41.fix'
         minSdk 16
         targetSdk 28
         versionCode 2
