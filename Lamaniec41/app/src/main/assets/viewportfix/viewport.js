@@ -49,8 +49,11 @@
         "}" +
         /* Compatibility test: disable CSS motion and card flip transitions. */
         "*, *::before, *::after {" +
-        "animation: none !important;" +
-        "transition: none !important;" +
+        "animation-duration: 1ms !important;" +
+        "animation-delay: 0ms !important;" +
+        "animation-iteration-count: 1 !important;" +
+        "transition-duration: 1ms !important;" +
+        "transition-delay: 0ms !important;" +
         "scroll-behavior: auto !important;" +
         "}" +
         /* Prevent decorative pseudo-elements from intercepting card taps. */
@@ -69,7 +72,7 @@
       if (document.getAnimations) {
         var animations = document.getAnimations();
         for (var i = 0; i < animations.length; i++) {
-          try { animations[i].cancel(); } catch (ignore) {}
+          try { animations[i].finish(); } catch (ignore) {}
         }
       }
     } catch (ignore) {}
@@ -84,7 +87,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["content"]
+      attributeFilter: ["content", "class", "style"]
     });
   }
 
