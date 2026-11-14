@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -74,11 +73,10 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onSuccess(String username) {
                 loginButton.setEnabled(true); loginButton.setText("Połącz ponownie konto");
                 accountStatus.setText("Połączono z kontem: " + username);
-                Toast.makeText(MainActivity.this, "Logowanie do Lichess zakończone.", Toast.LENGTH_LONG).show();
             }
             @Override public void onError(String message) {
                 loginButton.setEnabled(true); loginButton.setText("Spróbuj ponownie");
-                accountStatus.setText(message); Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                accountStatus.setText(message);
             }
         });
     }
@@ -95,5 +93,5 @@ public class MainActivity extends AppCompatActivity {
         b.setBackgroundDrawable(bg); LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(56)); lp.bottomMargin = dp(9);
         b.setOnClickListener(click); b.setGravity(Gravity.CENTER); b.setTransformationMethod(null); b.setLayoutParams(lp); return b;
     }
-    private void notReady(String message) { Toast.makeText(this, message, Toast.LENGTH_LONG).show(); }
+    private void notReady(String message) { accountStatus.setText(message); }
 }
