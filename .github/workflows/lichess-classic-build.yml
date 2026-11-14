@@ -1,0 +1,58 @@
+name: Build Lichess Classic APK
+
+on:
+  push:
+    branches:
+      - lichess-classic-ci-build
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug-apk:
+    name: Build Android 4.1-compatible APK
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+
+      - name: Install JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Install Android SDK tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 28
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-28" "build-tools;28.0.3"
+
+      - name: Extract Lichess Classic sources
+        run: |
+          mkdir -p /tmp/lc-source
+          base64 --decode ci/LichessClassic-dev-0.2.1.tar.xz.b64 | tar -xJf - -C /tmp/lc-source
+          test -f /tmp/lc-source/LichessClassic/app/build.gradle
+          echo "LC_ROOT=/tmp/lc-source/LichessClassic" >> "$GITHUB_ENV"
+
+      - name: Download and verify Gradle 4.6
+        run: |
+          curl --fail --location --retry 3 --output /tmp/gradle-4.6-bin.zip https://services.gradle.org/distributions/gradle-4.6-bin.zip
+          echo "98bd5fd2b30e070517e03c51cbb32beee3e2ee1a84003a5a5d748996d4b1b915  /tmp/gradle-4.6-bin.zip" | sha256sum --check
+          unzip -q /tmp/gradle-4.6-bin.zip -d /tmp
+
+      - name: Build debug APK
+        run: |
+          cd "$LC_ROOT"
+          /tmp/gradle-4.6/bin/gradle --no-daemon --stacktrace clean assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LichessClassic-0.2.1-debug
+          path: /tmp/lc-source/LichessClassic/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
