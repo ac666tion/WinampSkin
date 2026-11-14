@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'pl.ac666tion.lamaniec41'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'pl.ac666tion.lamaniec41'
+        minSdk 16
+        targetSdk 28
+        versionCode 1
+        versionName '0.1.0'
+
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+}
+
+dependencies {
+    // GeckoView default/Lite build for ARMv7, before the API 21 increase in release 119.
+    implementation 'org.mozilla.geckoview:geckoview-armeabi-v7a:118.0.20231009140911'
+}
