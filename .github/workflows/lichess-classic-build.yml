@@ -43,6 +43,7 @@ jobs:
         run: |
           test -f LichessClassic/app/build.gradle
           test -f LichessClassic/app/src/main/java/pl/lichessclassic/auth/LichessOAuth.java
+          test -f LichessClassic/app/src/main/java/pl/lichessclassic/net/LichessBoardApi.java
           echo "LC_ROOT=$GITHUB_WORKSPACE/LichessClassic" >> "$GITHUB_ENV"
 
       - name: Download and verify Gradle 4.6
@@ -66,7 +67,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LichessClassic-0.2.1-debug
+          name: LichessClassic-0.2.2-debug
           path: LichessClassic/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
