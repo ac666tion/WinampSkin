@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,11 +33,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK components
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android 34 platform and build tools
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Accept Android SDK licenses and install build platform
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Install Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
