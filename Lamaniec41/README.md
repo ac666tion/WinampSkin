@@ -7,11 +7,14 @@ A minimal Android launcher for https://www.lamaniec.pl/ using Mozilla GeckoView.
 - ARMv7 (`armeabi-v7a`), intended for Samsung Galaxy Tab 2 GT-P5100
 - GeckoView 118.0.20231009140911 (pre-API-21 build)
 
-## Version 0.2.0
-- Uses a separate application ID so it can be installed beside the first test build without uninstalling it.
+## Version 0.3.0 — reduced-motion diagnostic
+- Keeps the separate application ID introduced in 0.2.0.
 - Forces a device-width mobile viewport at document start.
 - Re-applies the viewport if the site overwrites it.
 - Adds conservative wrapping for long instructions and responsive media.
+- Reduces CSS animation and transition durations to 1 ms, rather than removing animation events entirely.
+- Finishes running Web Animations so card flips should settle immediately.
+- Prevents decorative pseudo-elements from intercepting card taps.
 - Explicitly configures GeckoView for mobile user-agent, mobile viewport and standalone display mode.
 
 ## Build
@@ -24,4 +27,4 @@ gradle assembleDebug
 APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Important
-This is an experimental compatibility wrapper, not an official Łamaniec app. GeckoView 118 is old and no longer receives security updates. It is intended only to test the game site on the legacy tablet, not for banking or sensitive logins. The injected CSS is intentionally conservative; the appearance must still be verified on the physical tablet.
+This is an experimental compatibility wrapper, not an official Łamaniec app. GeckoView 118 is old and no longer receives security updates. It is intended only to test the game site on the legacy tablet, not for banking or sensitive logins. The injected CSS is diagnostic; its effect must still be verified on the physical tablet.
