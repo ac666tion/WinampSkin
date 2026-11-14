@@ -1,0 +1,1 @@
+Verify final debug APK metadata (package/minSDK) and signature using Build Tools 28.0.3.
