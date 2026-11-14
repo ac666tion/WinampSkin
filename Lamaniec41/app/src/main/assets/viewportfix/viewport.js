@@ -47,29 +47,38 @@
         "min-width: 0 !important;" +
         "}" +
         "}" +
-        /* Diagnostic compatibility mode: remove decorative motion. */
+        /* Compatibility test: disable CSS motion and card flip transitions. */
         "*, *::before, *::after {" +
         "animation: none !important;" +
         "transition: none !important;" +
         "scroll-behavior: auto !important;" +
         "}" +
-        /* Decorative pseudo-elements must not sit on top of card hit targets. */
-        "*, *::before, *::after {" +
-        "pointer-events: auto;" +
-        "}" +
-        "*, *::before, *::after {" +
-        "-webkit-tap-highlight-color: transparent;" +
-        "}" +
+        /* Prevent decorative pseudo-elements from intercepting card taps. */
         "::before, ::after {" +
         "pointer-events: none !important;" +
+        "}" +
+        "* {" +
+        "-webkit-tap-highlight-color: transparent;" +
         "}";
       head.appendChild(style);
     }
   }
 
+  function stopWebAnimations() {
+    try {
+      if (document.getAnimations) {
+        var animations = document.getAnimations();
+        for (var i = 0; i < animations.length; i++) {
+          try { animations[i].cancel(); } catch (ignore) {}
+        }
+      }
+    } catch (ignore) {}
+  }
+
   if (window.MutationObserver) {
     var observer = new MutationObserver(function () {
       applyViewport();
+      stopWebAnimations();
     });
     observer.observe(document, {
       childList: true,
@@ -80,5 +89,9 @@
   }
 
   applyViewport();
-  document.addEventListener("DOMContentLoaded", applyViewport, false);
+  stopWebAnimations();
+  document.addEventListener("DOMContentLoaded", function () {
+    applyViewport();
+    stopWebAnimations();
+  }, false);
 })();
